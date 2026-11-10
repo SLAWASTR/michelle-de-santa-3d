@@ -1,3 +1,5 @@
+/* Michelle De Santa 3D - GTA 3 Visual Theme & HUD */
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -10,8 +12,8 @@ html, body {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background-color: #0d0f12;
-  font-family: 'Cinzel', 'Playfair Display', 'Georgia', serif, -apple-system, sans-serif;
+  background-color: #121820; /* Slate-blue Portland fog */
+  font-family: 'Pricedown', 'Impact', 'Arial Black', -apple-system, sans-serif;
   color: #f5eedc;
 }
 
@@ -30,7 +32,7 @@ html, body {
   display: block;
 }
 
-/* Vignette overlay for film noir effect */
+/* Subtle Film Noir / CRT scanline overlay */
 #noir-vignette {
   position: absolute;
   top: 0;
@@ -38,17 +40,37 @@ html, body {
   width: 100%;
   height: 100%;
   pointer-events: none;
-  box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.8), inset 0 0 160px rgba(0, 0, 0, 0.6);
+  box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.75);
   z-index: 10;
-  transition: all 0.5s ease;
+  transition: all 0.4s ease;
 }
 
 #noir-vignette.calm-focus {
-  box-shadow: inset 0 0 140px rgba(218, 165, 32, 0.4), inset 0 0 220px rgba(0, 0, 0, 0.95);
-  background: radial-gradient(circle, transparent 60%, rgba(218, 165, 32, 0.15) 100%);
+  box-shadow: inset 0 0 160px rgba(218, 165, 32, 0.5), inset 0 0 240px rgba(0, 0, 0, 0.95);
+  background: radial-gradient(circle, transparent 55%, rgba(218, 165, 32, 0.2) 100%);
 }
 
-/* HUD Overlay */
+#slowmo-notice {
+  position: absolute;
+  top: 20%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 24px;
+  letter-spacing: 4px;
+  color: #f1c40f;
+  text-shadow: 2px 2px 0 #000, 0 0 15px rgba(241, 196, 15, 0.9);
+  font-weight: 900;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  text-transform: uppercase;
+}
+
+#slowmo-notice.active {
+  opacity: 1;
+}
+
+/* GTA 3 HUD OVERLAY */
 #hud {
   position: absolute;
   top: 0;
@@ -63,7 +85,7 @@ html, body {
   padding: 16px;
 }
 
-/* Top bar */
+/* TOP BAR */
 .top-bar {
   display: flex;
   justify-content: space-between;
@@ -71,27 +93,24 @@ html, body {
   width: 100%;
 }
 
+/* GTA 3 Profile & Weapon/Badge Box */
 .profile-card {
   display: flex;
   align-items: center;
-  gap: 14px;
-  background: rgba(14, 16, 20, 0.88);
-  border: 2px solid #c9a84d;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.8), 0 0 15px rgba(201, 168, 77, 0.25);
-  border-radius: 12px;
-  padding: 10px 16px;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  gap: 12px;
+  background: rgba(14, 18, 24, 0.88);
+  border: 3px solid #283445;
+  border-radius: 8px;
+  padding: 8px 14px;
+  box-shadow: 3px 3px 0 rgba(0,0,0,0.8);
 }
 
 .avatar-wrapper {
-  position: relative;
-  width: 58px;
-  height: 58px;
-  border-radius: 50%;
-  border: 2px solid #e0c375;
+  width: 52px;
+  height: 52px;
+  border-radius: 6px;
+  border: 2px solid #d4af37;
   overflow: hidden;
-  box-shadow: 0 0 10px rgba(224, 195, 117, 0.5);
   flex-shrink: 0;
 }
 
@@ -104,152 +123,166 @@ html, body {
 .character-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .char-title {
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-  color: #f7e1a0;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  color: #fff;
+  text-shadow: 2px 2px 0 #000;
   text-transform: uppercase;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.9);
 }
 
 .char-motto {
   font-size: 11px;
-  color: #baa785;
+  color: #8fa0b5;
+  font-family: -apple-system, sans-serif;
   letter-spacing: 0.5px;
-  font-style: italic;
 }
 
-.stats-row {
+/* TOP RIGHT: ICONIC GTA 3 STATS CLUSTER */
+.gta-stats-cluster {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 2px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  text-shadow: 3px 3px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
 }
 
-.stat-item {
+.gta-time {
+  font-size: 20px;
+  font-weight: 900;
+  color: #dcdcdc;
+  letter-spacing: 2px;
+}
+
+.gta-health {
+  font-size: 26px;
+  font-weight: 900;
+  color: #ff3366; /* GTA 3 pink-red health */
+  letter-spacing: 2px;
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
-  font-weight: bold;
 }
 
-.stat-bar-container {
-  width: 75px;
-  height: 7px;
-  background: rgba(40, 40, 45, 0.8);
-  border-radius: 4px;
-  overflow: hidden;
-  border: 1px solid #555;
+.gta-armor {
+  font-size: 24px;
+  font-weight: 900;
+  color: #3399ff; /* GTA 3 blue armor / respect */
+  letter-spacing: 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.stat-bar-fill {
-  height: 100%;
-  width: 100%;
-  background: linear-gradient(90deg, #27ae60, #2ecc71);
-  transition: width 0.3s ease;
+.gta-cash {
+  font-size: 30px;
+  font-weight: 900;
+  color: #55ee55; /* GTA 3 green money font */
+  letter-spacing: 2px;
+  font-family: 'Impact', 'Arial Black', monospace;
 }
 
-.stat-bar-fill.loyalty {
-  background: linear-gradient(90deg, #d4af37, #f39c12);
+.gta-stars {
+  display: flex;
+  gap: 4px;
+  margin-top: 2px;
 }
 
-.money-badge {
-  color: #2ecc71;
-  font-family: monospace;
-  font-size: 13px;
-  font-weight: bold;
+.star {
+  font-size: 16px;
+  color: #444;
 }
 
-/* Mission Objective banner in top center */
+.star.lit {
+  color: #ffd700;
+  text-shadow: 0 0 8px #ffd700;
+}
+
+/* TOP CENTER OBJECTIVE BANNER */
 .objective-container {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  top: 16px;
+  top: 14px;
   text-align: center;
-  background: rgba(12, 14, 18, 0.92);
-  border: 1px solid #d4af37;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.9);
-  padding: 8px 24px;
-  border-radius: 20px;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  max-width: 480px;
+  background: rgba(10, 14, 20, 0.92);
+  border: 2px solid #d4af37;
+  padding: 6px 22px;
+  border-radius: 6px;
+  box-shadow: 3px 3px 0 #000;
+  max-width: 520px;
   pointer-events: auto;
 }
 
 .objective-tag {
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 2px;
-  color: #d4af37;
+  color: #f1c40f;
   text-transform: uppercase;
-  margin-bottom: 2px;
+  font-weight: 900;
 }
 
 .objective-text {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: bold;
   color: #fff;
-  letter-spacing: 0.5px;
+  font-family: -apple-system, sans-serif;
+  margin-top: 2px;
 }
 
 .objective-distance {
   font-size: 11px;
-  color: #f1c40f;
-  margin-top: 3px;
+  color: #ffd700;
+  margin-top: 2px;
   font-family: monospace;
 }
 
-/* Top right controls & minimap */
-.top-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 12px;
-}
-
+/* Quick Action Buttons */
 .quick-buttons {
+  position: absolute;
+  top: 85px;
+  left: 16px;
   display: flex;
   gap: 8px;
   pointer-events: auto;
 }
 
 .icon-btn {
-  background: rgba(20, 22, 28, 0.85);
-  border: 1px solid #c9a84d;
-  color: #e5c378;
+  background: rgba(16, 20, 26, 0.9);
+  border: 2px solid #556677;
+  color: #ffd700;
   width: 38px;
   height: 38px;
-  border-radius: 8px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   font-size: 16px;
-  transition: all 0.2s ease;
+  box-shadow: 2px 2px 0 #000;
 }
 
-.icon-btn:hover, .icon-btn:active {
-  background: #c9a84d;
-  color: #121418;
-  box-shadow: 0 0 12px rgba(201, 168, 77, 0.6);
-  transform: scale(1.05);
+.icon-btn:hover {
+  background: #253345;
 }
 
+/* BOTTOM LEFT: GTA 3 CIRCULAR RADAR MINIMAP */
 .minimap-wrapper {
-  width: 110px;
-  height: 110px;
+  position: absolute;
+  bottom: 24px;
+  left: 24px;
+  width: 124px;
+  height: 124px;
   border-radius: 50%;
-  border: 2px solid #d4af37;
+  border: 4px solid #1c222b;
   overflow: hidden;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.9);
+  box-shadow: 0 0 0 2px #d4af37, 4px 4px 12px rgba(0,0,0,0.9);
   background: #14171d;
-  position: relative;
+  pointer-events: auto;
 }
 
 #minimap-canvas {
@@ -258,112 +291,99 @@ html, body {
   display: block;
 }
 
-/* Center Slow-mo Notice */
-#slowmo-notice {
+/* GTA 3 VEHICLE NAME BANNER (Slides in when driving) */
+#car-name-banner {
   position: absolute;
-  top: 18%;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 20px;
-  letter-spacing: 4px;
-  color: #f1c40f;
-  text-shadow: 0 0 15px rgba(241, 196, 15, 0.8);
-  font-weight: bold;
+  bottom: 30px;
+  right: 30px;
+  text-align: right;
   opacity: 0;
-  transition: opacity 0.3s;
+  transform: translateX(40px);
+  transition: all 0.4s ease;
   pointer-events: none;
 }
 
-#slowmo-notice.active {
+#car-name-banner.visible {
   opacity: 1;
+  transform: translateX(0);
 }
 
-/* Dialog Box */
-#dialog-box {
-  position: absolute;
-  bottom: 120px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 90%;
-  max-width: 680px;
-  background: rgba(15, 17, 22, 0.95);
-  border: 2px solid #c9a84d;
-  border-radius: 14px;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.9), 0 0 20px rgba(201, 168, 77, 0.2);
-  padding: 18px 24px;
-  display: flex;
-  gap: 18px;
-  align-items: center;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  pointer-events: auto;
-  opacity: 0;
-  transform: translate(-50%, 20px);
-  transition: opacity 0.3s ease, transform 0.3s ease;
-  z-index: 50;
-}
-
-#dialog-box.visible {
-  opacity: 1;
-  transform: translate(-50%, 0);
-}
-
-.dialog-portrait {
-  width: 65px;
-  height: 65px;
-  border-radius: 10px;
-  border: 2px solid #e0c375;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.dialog-portrait img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.dialog-content {
-  flex-grow: 1;
-}
-
-.dialog-speaker {
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  color: #f1c40f;
-  margin-bottom: 4px;
+.car-title-text {
+  font-size: 28px;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 2px;
+  text-shadow: 3px 3px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
   text-transform: uppercase;
 }
 
-.dialog-text {
-  font-size: 14px;
-  line-height: 1.45;
-  color: #eee;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+.car-speed-text {
+  font-size: 16px;
+  font-weight: bold;
+  color: #f1c40f;
+  text-shadow: 2px 2px 0 #000;
+  font-family: monospace;
 }
 
-.dialog-prompt {
-  margin-top: 8px;
-  font-size: 11px;
-  color: #aaa;
-  text-align: right;
-  font-style: italic;
+/* GTA 3 MISSION PASSED BANNER */
+#mission-passed-banner {
+  position: absolute;
+  top: 35%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.8);
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  z-index: 80;
 }
 
-/* Action hint bar */
+#mission-passed-banner.show {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1.0);
+}
+
+.passed-title {
+  font-size: 54px;
+  font-weight: 900;
+  color: #f1c40f;
+  letter-spacing: 4px;
+  text-shadow: 4px 4px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000;
+  text-transform: uppercase;
+}
+
+.passed-reward {
+  font-size: 28px;
+  font-weight: 900;
+  color: #55ee55;
+  letter-spacing: 2px;
+  text-shadow: 3px 3px 0 #000;
+  margin-top: 4px;
+}
+
+.passed-respect {
+  font-size: 20px;
+  font-weight: bold;
+  color: #3399ff;
+  letter-spacing: 2px;
+  text-shadow: 2px 2px 0 #000;
+  margin-top: 2px;
+}
+
+/* Action Hint Bar */
 #action-hint {
   position: absolute;
   bottom: 85px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(18, 20, 26, 0.88);
-  border: 1px solid #d4af37;
+  background: rgba(18, 22, 28, 0.92);
+  border: 2px solid #d4af37;
   padding: 6px 18px;
-  border-radius: 20px;
-  font-size: 13px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: bold;
   color: #ffd700;
-  letter-spacing: 0.5px;
+  box-shadow: 2px 2px 0 #000;
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.2s ease;
@@ -374,46 +394,66 @@ html, body {
   opacity: 1;
 }
 
-/* Vehicle Dashboard Overlay (when in car) */
-#car-hud {
+/* Dialogue Box (GTA 3 Pager / Cutscene Style) */
+#dialog-box {
   position: absolute;
-  bottom: 24px;
+  bottom: 110px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(12, 14, 18, 0.9);
-  border: 2px solid #c9a84d;
-  border-radius: 16px;
-  padding: 10px 24px;
-  display: none;
-  align-items: center;
-  gap: 20px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.8);
-  pointer-events: auto;
-}
-
-#car-hud.visible {
+  width: 90%;
+  max-width: 660px;
+  background: rgba(12, 16, 22, 0.95);
+  border: 3px solid #d4af37;
+  border-radius: 6px;
+  box-shadow: 4px 4px 0 #000;
+  padding: 16px 20px;
   display: flex;
+  gap: 16px;
+  align-items: center;
+  pointer-events: auto;
+  opacity: 0;
+  transform: translate(-50%, 15px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  z-index: 50;
 }
 
-.car-gauge {
-  text-align: center;
+#dialog-box.visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
 }
 
-.gauge-val {
-  font-size: 22px;
-  font-weight: bold;
-  font-family: monospace;
-  color: #f39c12;
+.dialog-portrait {
+  width: 64px;
+  height: 64px;
+  border-radius: 6px;
+  border: 2px solid #ffd700;
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
-.gauge-label {
-  font-size: 10px;
-  color: #999;
+.dialog-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dialog-speaker {
+  font-size: 15px;
+  font-weight: 900;
   letter-spacing: 1px;
+  color: #ffd700;
+  margin-bottom: 4px;
   text-transform: uppercase;
 }
 
-/* Touch / Mobile Controls */
+.dialog-text {
+  font-size: 14px;
+  line-height: 1.45;
+  color: #fff;
+  font-family: -apple-system, sans-serif;
+}
+
+/* Mobile Touch Controls */
 #touch-controls {
   position: absolute;
   bottom: 0;
@@ -433,11 +473,11 @@ html, body {
   position: absolute;
   bottom: 30px;
   left: 30px;
-  width: 140px;
-  height: 140px;
+  width: 130px;
+  height: 130px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.08);
-  border: 2px solid rgba(212, 175, 55, 0.4);
+  border: 3px solid rgba(212, 175, 55, 0.5);
   pointer-events: auto;
   touch-action: none;
 }
@@ -446,57 +486,54 @@ html, body {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 54px;
-  height: 54px;
-  margin-top: -27px;
-  margin-left: -27px;
+  width: 50px;
+  height: 50px;
+  margin-top: -25px;
+  margin-left: -25px;
   border-radius: 50%;
-  background: radial-gradient(circle, #e0c375 0%, #a88432 100%);
-  box-shadow: 0 0 10px rgba(224, 195, 117, 0.6);
+  background: #f1c40f;
+  box-shadow: 0 0 10px rgba(241, 196, 15, 0.7);
   pointer-events: none;
-  transform: translate(0, 0);
 }
 
 .touch-action-buttons {
   position: absolute;
-  bottom: 30px;
-  right: 25px;
+  bottom: 25px;
+  right: 20px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   pointer-events: auto;
 }
 
 .touch-btn-row {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   justify-content: flex-end;
 }
 
 .touch-btn {
-  width: 58px;
-  height: 58px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
-  background: rgba(20, 22, 28, 0.85);
+  background: rgba(16, 20, 26, 0.88);
   border: 2px solid #d4af37;
   color: #ffd700;
-  font-size: 12px;
-  font-weight: bold;
+  font-size: 11px;
+  font-weight: 900;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.6);
-  transition: transform 0.1s, background 0.1s;
-  user-select: none;
+  box-shadow: 2px 2px 0 #000;
   touch-action: manipulation;
 }
 
 .touch-btn:active {
-  transform: scale(0.92);
   background: #d4af37;
-  color: #121418;
+  color: #111;
+  transform: scale(0.92);
 }
 
 .touch-btn span {
@@ -506,8 +543,7 @@ html, body {
 
 .touch-btn label {
   font-size: 9px;
-  letter-spacing: 0.5px;
-  margin-top: 2px;
+  margin-top: 1px;
   cursor: pointer;
 }
 
@@ -518,9 +554,9 @@ html, body {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(0, 0, 0, 0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   z-index: 100;
   display: none;
   justify-content: center;
@@ -533,28 +569,27 @@ html, body {
 }
 
 .modal-content {
-  background: #101216;
-  border: 2px solid #d4af37;
-  border-radius: 16px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9), 0 0 30px rgba(212, 175, 55, 0.3);
-  max-width: 900px;
+  background: #10141c;
+  border: 3px solid #d4af37;
+  border-radius: 8px;
+  max-width: 880px;
   width: 100%;
   overflow: hidden;
-  position: relative;
+  box-shadow: 6px 6px 0 #000;
 }
 
 .modal-header {
-  padding: 14px 20px;
+  padding: 12px 18px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #333;
-  background: #171a20;
+  border-bottom: 2px solid #283445;
+  background: #18202c;
 }
 
 .modal-title {
   color: #f1c40f;
-  font-size: 16px;
+  font-size: 17px;
   letter-spacing: 1px;
 }
 
@@ -566,10 +601,6 @@ html, body {
   cursor: pointer;
 }
 
-.close-btn:hover {
-  color: #fff;
-}
-
 .modal-body {
   padding: 16px;
   text-align: center;
@@ -578,61 +609,30 @@ html, body {
 .modal-body img {
   max-width: 100%;
   height: auto;
-  border-radius: 8px;
   border: 1px solid #444;
 }
 
 .modal-footer {
-  padding: 12px 20px;
-  font-size: 13px;
-  color: #bbb;
-  background: #14161c;
-  line-height: 1.5;
-  border-top: 1px solid #282b33;
+  padding: 10px 18px;
+  font-size: 12px;
+  color: #aaa;
+  background: #141822;
+  font-family: -apple-system, sans-serif;
 }
 
-/* Floating 3D label marker */
-.marker-3d {
-  position: absolute;
-  transform: translate(-50%, -100%);
-  pointer-events: none;
-  background: rgba(20, 22, 28, 0.9);
-  border: 1px solid #ffd700;
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: bold;
-  color: #fff;
-  white-space: nowrap;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.8);
-  transition: opacity 0.2s;
-  z-index: 25;
-}
-
-.marker-3d::after {
-  content: '';
-  position: absolute;
-  bottom: -6px;
-  left: 50%;
-  transform: translateX(-50%);
-  border-width: 6px 5px 0 5px;
-  border-style: solid;
-  border-color: #ffd700 transparent transparent transparent;
-}
-
-/* Notifications */
 #toast {
   position: absolute;
-  top: 80px;
+  top: 75px;
   left: 50%;
   transform: translateX(-50%) translateY(-20px);
-  background: rgba(25, 28, 35, 0.95);
-  border: 1px solid #2ecc71;
+  background: rgba(16, 22, 30, 0.95);
+  border: 2px solid #2ecc71;
   color: #fff;
-  padding: 10px 24px;
-  border-radius: 20px;
+  padding: 8px 20px;
+  border-radius: 4px;
   font-size: 13px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+  font-weight: bold;
+  box-shadow: 2px 2px 0 #000;
   opacity: 0;
   transition: all 0.3s ease;
   pointer-events: none;
@@ -642,4 +642,35 @@ html, body {
 #toast.show {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
+}
+
+@media (max-width: 768px) {
+  .minimap-wrapper {
+    bottom: 165px;
+    left: 18px;
+    width: 95px;
+    height: 95px;
+  }
+  .gta-cash {
+    font-size: 22px;
+  }
+  .gta-health, .gta-armor {
+    font-size: 18px;
+  }
+  .gta-time {
+    font-size: 16px;
+  }
+  .profile-card {
+    padding: 6px 10px;
+  }
+  .avatar-wrapper {
+    width: 40px;
+    height: 40px;
+  }
+  .char-title {
+    font-size: 14px;
+  }
+  .char-motto {
+    font-size: 9px;
+  }
 }

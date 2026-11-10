@@ -202,6 +202,10 @@ class MissionManager {
     this.cashBalance += 500;
     this.game.updateHUDStats();
 
+    if (this.game.showMissionPassed) {
+      this.game.showMissionPassed("+$500");
+    }
+
     if (missionId === 4) {
       // Grand Finale: Open the Oral Presentation slide modal!
       this.game.showToast("★ TROPHY UNLOCKED: THE ULTIMATE BEST FRIEND ★");

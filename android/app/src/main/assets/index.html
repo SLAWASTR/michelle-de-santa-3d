@@ -50,17 +50,45 @@
         </div>
       </div>
 
-      <!-- Quick Action Buttons & Minimap -->
-      <div class="top-right">
-        <div class="quick-buttons">
-          <button id="btn-sound" class="icon-btn" title="Toggle Jazz Noir Music &amp; Audio">🎵</button>
-          <button id="btn-slide" class="icon-btn" title="View Original Oral Presentation Slide">📜</button>
-        </div>
-
-        <div class="minimap-wrapper">
-          <canvas id="minimap-canvas"></canvas>
+      <!-- Top Right: GTA 3 Stats Cluster -->
+      <div class="gta-stats-cluster">
+        <div id="gta-clock" class="gta-time">22:45</div>
+        <div class="gta-health"><span style="color:#ff3366;">♥</span> <span id="hud-health-val">100</span></div>
+        <div class="gta-armor"><span style="color:#3399ff;">★</span> <span id="hud-armor-val">100</span></div>
+        <div id="hud-cash-val" class="gta-cash">$00001200</div>
+        <div class="gta-stars">
+          <span class="star">★</span>
+          <span class="star">★</span>
+          <span class="star">★</span>
+          <span class="star">★</span>
+          <span class="star">★</span>
+          <span class="star">★</span>
         </div>
       </div>
+    </div>
+
+    <!-- Quick Action Buttons -->
+    <div class="quick-buttons">
+      <button id="btn-sound" class="icon-btn" title="Toggle Radio / Audio">🎵</button>
+      <button id="btn-slide" class="icon-btn" title="View Original Oral Presentation Slide">📜</button>
+    </div>
+
+    <!-- GTA 3 Circular Radar Minimap -->
+    <div class="minimap-wrapper">
+      <canvas id="minimap-canvas"></canvas>
+    </div>
+
+    <!-- GTA 3 Vehicle Slide-in Name Banner -->
+    <div id="car-name-banner">
+      <div class="car-title-text" id="car-banner-title">DE SANTA ROADSTER</div>
+      <div class="car-speed-text" id="car-banner-speed">KM/H: 0</div>
+    </div>
+
+    <!-- GTA 3 Mission Passed Banner -->
+    <div id="mission-passed-banner">
+      <div class="passed-title">MISSION PASSED!</div>
+      <div class="passed-reward" id="passed-reward-text">+$500</div>
+      <div class="passed-respect">RESPECT + LOYALTY</div>
     </div>
 
     <!-- Center Mission Objective Banner -->

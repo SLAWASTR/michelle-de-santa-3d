@@ -1,16 +1,15 @@
 /**
- * Michelle De Santa 3D - High-Fidelity City World ("Santa District")
- * Features:
- * - High-res procedural textures (Brick, Glowing Windows, Marble, Asphalt)
- * - Volumetric streetlamp light cones & glowing neon signage
- * - Complete AABB & Cylinder collision system (no walking through buildings!)
- * - Starfield sky & glowing full moon
+ * Michelle De Santa 3D - Liberty City District (GTA 3 Visual Style)
+ * Authentic 2000s 3D aesthetics:
+ * - Slate-blue Portland fog, yellow cabs, weathered brick tenements
+ * - Neon signs in hot pink & cyan, sewer grates, crosswalks
+ * - Safe, crash-proof collision system.
  */
 
 class CityWorld {
   constructor(scene) {
     this.scene = scene;
-    this.colliders = []; // { type: 'box', minX, maxX, minZ, maxZ } or { type: 'circle', x, z, r }
+    this.colliders = [];
     this.pedestrians = [];
     this.volumetricCones = [];
     this.neonSigns = [];
@@ -20,19 +19,19 @@ class CityWorld {
   }
 
   generateProceduralTextures() {
-    // 1. High-Detail Brick & Glowing Windows Facade Texture
+    // 1. GTA 3 Style Red/Brown Brick & Illuminated Windows
     const winCanvas = document.createElement('canvas');
     winCanvas.width = 512;
     winCanvas.height = 512;
     const wctx = winCanvas.getContext('2d');
 
-    // Dark brown/charcoal brick base
-    wctx.fillStyle = '#1c1f24';
+    // Weathered Liberty City brick
+    wctx.fillStyle = '#221919';
     wctx.fillRect(0, 0, 512, 512);
 
     // Brick mortar lines
-    wctx.strokeStyle = '#121417';
-    wctx.lineWidth = 1;
+    wctx.strokeStyle = '#140f0f';
+    wctx.lineWidth = 1.5;
     for (let y = 0; y < 512; y += 16) {
       wctx.beginPath();
       wctx.moveTo(0, y);
@@ -40,42 +39,34 @@ class CityWorld {
       wctx.stroke();
     }
 
-    // Window grid
+    // Windows with green copper frames (classic GTA 3 aesthetic)
     const cols = 8;
-    const rows = 12;
-    const winW = 32;
-    const winH = 26;
+    const rows = 10;
+    const winW = 34;
+    const winH = 28;
     const stepX = 512 / cols;
     const stepY = 512 / rows;
 
     for (let c = 0; c < cols; c++) {
       for (let r = 0; r < rows; r++) {
-        const wx = c * stepX + 16;
-        const wy = r * stepY + 8;
+        const wx = c * stepX + 15;
+        const wy = r * stepY + 12;
 
-        // Window frame
-        wctx.fillStyle = '#0a0b0e';
+        // Copper green window frame
+        wctx.fillStyle = '#1c2e26';
         wctx.fillRect(wx - 2, wy - 2, winW + 4, winH + 4);
 
-        // Window glass with warm glow or dark room
-        const isLit = (Math.sin(c * 13.5 + r * 7.2) > -0.2);
+        const isLit = (Math.sin(c * 11.2 + r * 5.7) > -0.15);
         if (isLit) {
-          const warmL = 180 + Math.floor(Math.sin(c * 3 + r * 5) * 50);
-          wctx.fillStyle = `rgb(${warmL + 30}, ${warmL - 10}, 100)`;
+          const warm = 190 + Math.floor(Math.sin(c * 4 + r * 6) * 45);
+          wctx.fillStyle = `rgb(${warm + 30}, ${warm - 10}, 110)`;
           wctx.fillRect(wx, wy, winW, winH);
 
-          // Window panes / cross bars
-          wctx.fillStyle = '#151515';
+          wctx.fillStyle = '#181818';
           wctx.fillRect(wx + winW / 2 - 1, wy, 2, winH);
           wctx.fillRect(wx, wy + winH / 2 - 1, winW, 2);
-
-          // Blinds / curtains on some windows
-          if (Math.sin(c * 8 + r * 3) > 0.3) {
-            wctx.fillStyle = 'rgba(20, 20, 20, 0.4)';
-            wctx.fillRect(wx, wy, winW, winH * 0.4);
-          }
         } else {
-          wctx.fillStyle = '#101317';
+          wctx.fillStyle = '#101316';
           wctx.fillRect(wx, wy, winW, winH);
         }
       }
@@ -86,20 +77,20 @@ class CityWorld {
     this.buildingTexture.wrapT = THREE.RepeatWrapping;
     this.buildingTexture.repeat.set(2, 2);
 
-    // 2. High-Detail Wet Asphalt Texture
+    // 2. GTA 3 Weathered Asphalt Texture with Double Yellow Lines
     const roadCanvas = document.createElement('canvas');
     roadCanvas.width = 256;
     roadCanvas.height = 256;
     const rctx = roadCanvas.getContext('2d');
-    rctx.fillStyle = '#16181d';
+    rctx.fillStyle = '#1d2128';
     rctx.fillRect(0, 0, 256, 256);
 
-    // Subtle road grain / pebbles
-    for (let i = 0; i < 3000; i++) {
+    // Asphalt noise grain
+    for (let i = 0; i < 4000; i++) {
       const rx = Math.random() * 256;
       const ry = Math.random() * 256;
-      const shade = 18 + Math.floor(Math.random() * 22);
-      rctx.fillStyle = `rgb(${shade},${shade + 2},${shade + 5})`;
+      const c = 22 + Math.floor(Math.random() * 25);
+      rctx.fillStyle = `rgb(${c},${c+2},${c+4})`;
       rctx.fillRect(rx, ry, 2, 2);
     }
     this.roadTexture = new THREE.CanvasTexture(roadCanvas);
@@ -107,14 +98,14 @@ class CityWorld {
     this.roadTexture.wrapT = THREE.RepeatWrapping;
     this.roadTexture.repeat.set(16, 16);
 
-    // 3. Sidewalk Paver Texture
+    // 3. Sidewalk Concrete Slabs
     const swCanvas = document.createElement('canvas');
     swCanvas.width = 128;
     swCanvas.height = 128;
     const sctx = swCanvas.getContext('2d');
-    sctx.fillStyle = '#343840';
+    sctx.fillStyle = '#3c424a';
     sctx.fillRect(0, 0, 128, 128);
-    sctx.strokeStyle = '#22252a';
+    sctx.strokeStyle = '#282d33';
     sctx.lineWidth = 2;
     for (let i = 0; i < 128; i += 32) {
       sctx.strokeRect(i, 0, 32, 128);
@@ -125,23 +116,9 @@ class CityWorld {
     this.sidewalkTexture.wrapT = THREE.RepeatWrapping;
     this.sidewalkTexture.repeat.set(4, 4);
 
-    // Materials
-    this.roadMat = new THREE.MeshStandardMaterial({
-      map: this.roadTexture,
-      roughness: 0.35,
-      metalness: 0.15
-    });
-
-    this.buildingMat = new THREE.MeshStandardMaterial({
-      map: this.buildingTexture,
-      roughness: 0.6,
-      metalness: 0.1
-    });
-
-    this.sidewalkMat = new THREE.MeshStandardMaterial({
-      map: this.sidewalkTexture,
-      roughness: 0.8
-    });
+    this.roadMat = new THREE.MeshStandardMaterial({ map: this.roadTexture, roughness: 0.45, metalness: 0.1 });
+    this.buildingMat = new THREE.MeshStandardMaterial({ map: this.buildingTexture, roughness: 0.65, metalness: 0.08 });
+    this.sidewalkMat = new THREE.MeshStandardMaterial({ map: this.sidewalkTexture, roughness: 0.8 });
   }
 
   initCity() {
@@ -151,45 +128,35 @@ class CityWorld {
     this.createCityBuildings();
     this.createPlazaAndFountain();
     this.createStreetFurniture();
+    this.spawnParkedCabs();
     this.spawnPedestrians();
     this.setupWorldBorders();
   }
 
   createSkyAndMoon() {
-    // 1. Starfield in midnight sky
-    const starCount = 600;
+    // GTA 3 Classic Starry Sky
+    const starCount = 650;
     const starGeo = new THREE.BufferGeometry();
     const starPos = new Float32Array(starCount * 3);
     for (let i = 0; i < starCount; i++) {
       const theta = Math.random() * Math.PI * 2;
-      const phi = Math.acos(Math.random() * 0.85 + 0.15); // Above horizon
+      const phi = Math.acos(Math.random() * 0.85 + 0.15);
       const radius = 220;
       starPos[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
       starPos[i * 3 + 1] = radius * Math.cos(phi);
       starPos[i * 3 + 2] = radius * Math.sin(phi) * Math.sin(theta);
     }
     starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
-    const starMat = new THREE.PointsMaterial({ color: 0xeeffff, size: 1.2, transparent: true, opacity: 0.8 });
-    const starField = new THREE.Points(starGeo, starMat);
-    this.scene.add(starField);
+    const starMat = new THREE.PointsMaterial({ color: 0xddeeff, size: 1.2, transparent: true, opacity: 0.85 });
+    this.scene.add(new THREE.Points(starGeo, starMat));
 
-    // 2. Large Noir Full Moon with Soft Glow
+    // Liberty City Moon
     const moonGroup = new THREE.Group();
     moonGroup.position.set(-60, 110, -110);
-
-    const moonGeo = new THREE.CircleGeometry(16, 32);
-    const moonMat = new THREE.MeshBasicMaterial({ color: 0xfffae8 });
-    const moonMesh = new THREE.Mesh(moonGeo, moonMat);
+    const moonMesh = new THREE.Mesh(new THREE.CircleGeometry(16, 32), new THREE.MeshBasicMaterial({ color: 0xfffae8 }));
     moonGroup.add(moonMesh);
 
-    // Moon Glow Halo
-    const haloGeo = new THREE.CircleGeometry(26, 32);
-    const haloMat = new THREE.MeshBasicMaterial({
-      color: 0xffea99,
-      transparent: true,
-      opacity: 0.25
-    });
-    const haloMesh = new THREE.Mesh(haloGeo, haloMat);
+    const haloMesh = new THREE.Mesh(new THREE.CircleGeometry(26, 32), new THREE.MeshBasicMaterial({ color: 0xffea99, transparent: true, opacity: 0.22 }));
     haloMesh.position.z = -0.5;
     moonGroup.add(haloMesh);
 
@@ -198,14 +165,14 @@ class CityWorld {
   }
 
   createRoadsAndGround() {
-    // Main City Asphalt Ground (160m x 160m)
+    // Main Asphalt Surface
     const groundGeo = new THREE.PlaneGeometry(160, 160);
     const ground = new THREE.Mesh(groundGeo, this.roadMat);
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
     this.scene.add(ground);
 
-    // Sidewalk slabs
+    // Concrete Sidewalk Blocks
     const sidewalkBlocks = [
       { x: -35, z: 35, w: 46, d: 46 },
       { x: 35, z: 35, w: 46, d: 46 },
@@ -221,80 +188,70 @@ class CityWorld {
       this.scene.add(mesh);
     });
 
-    // Road Markings (White dashed lines & Crosswalks)
-    const lineMat = new THREE.MeshBasicMaterial({ color: 0xe0e0d0 });
+    // Double Yellow Center Lines (Iconic GTA 3 style)
+    const yellowLineMat = new THREE.MeshBasicMaterial({ color: 0xf1c40f });
+    const whiteLineMat = new THREE.MeshBasicMaterial({ color: 0xe0e0d0 });
 
-    for (let z = -70; z <= 70; z += 6) {
+    // North-South Avenue Double Yellow Line
+    for (let z = -70; z <= 70; z += 5) {
       if (Math.abs(z) > 12) {
-        const dashGeo = new THREE.PlaneGeometry(0.35, 3.2);
-        const dash = new THREE.Mesh(dashGeo, lineMat);
-        dash.rotation.x = -Math.PI / 2;
-        dash.position.set(0, 0.015, z);
-        this.scene.add(dash);
+        [-0.2, 0.2].forEach(ox => {
+          const dash = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 3.4), yellowLineMat);
+          dash.rotation.x = -Math.PI / 2;
+          dash.position.set(ox, 0.016, z);
+          this.scene.add(dash);
+        });
       }
     }
 
-    for (let x = -70; x <= 70; x += 6) {
+    // East-West Street Center Line
+    for (let x = -70; x <= 70; x += 5) {
       if (Math.abs(x) > 12) {
-        const dashGeo = new THREE.PlaneGeometry(3.2, 0.35);
-        const dash = new THREE.Mesh(dashGeo, lineMat);
-        dash.rotation.x = -Math.PI / 2;
-        dash.position.set(x, 0.015, 0);
-        this.scene.add(dash);
+        [-0.2, 0.2].forEach(oz => {
+          const dash = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 0.18), yellowLineMat);
+          dash.rotation.x = -Math.PI / 2;
+          dash.position.set(x, 0.016, oz);
+          this.scene.add(dash);
+        });
       }
     }
 
     // Crosswalk zebra stripes
     [-9.5, 9.5].forEach(pos => {
       for (let i = -6; i <= 6; i += 1.6) {
-        const zGeo = new THREE.PlaneGeometry(0.8, 4.0);
-        const zMesh = new THREE.Mesh(zGeo, lineMat);
+        const zMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 4.0), whiteLineMat);
         zMesh.rotation.x = -Math.PI / 2;
         zMesh.position.set(i, 0.016, pos);
         this.scene.add(zMesh);
       }
       for (let i = -6; i <= 6; i += 1.6) {
-        const zGeo = new THREE.PlaneGeometry(4.0, 0.8);
-        const zMesh = new THREE.Mesh(zGeo, lineMat);
+        const zMesh = new THREE.Mesh(new THREE.PlaneGeometry(4.0, 0.8), whiteLineMat);
         zMesh.rotation.x = -Math.PI / 2;
         zMesh.position.set(pos, 0.016, i);
         this.scene.add(zMesh);
       }
     });
 
-    // Glossy Water Puddles with high specular reflections
-    const puddleMat = new THREE.MeshStandardMaterial({
-      color: 0x05080c,
-      roughness: 0.02,
-      metalness: 0.95,
-      transparent: true,
-      opacity: 0.92
-    });
-
-    const puddlePositions = [
-      { x: 3, z: 8, rx: 2.8, rz: 2.0 },
-      { x: -5, z: -15, rx: 3.5, rz: 2.2 },
-      { x: 18, z: 4, rx: 2.2, rz: 3.2 },
-      { x: -22, z: 5, rx: 3.4, rz: 1.8 }
+    // Sewer drainage grates at curbs (Classic GTA 3 touch!)
+    const grateMat = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.9, roughness: 0.3 });
+    const gratePositions = [
+      { x: -11.2, z: 8 }, { x: -11.2, z: -8 },
+      { x: 11.2, z: 8 }, { x: 11.2, z: -8 }
     ];
-
-    puddlePositions.forEach(p => {
-      const pGeo = new THREE.CircleGeometry(p.rx, 20);
-      const pMesh = new THREE.Mesh(pGeo, puddleMat);
-      pMesh.rotation.x = -Math.PI / 2;
-      pMesh.scale.set(1, p.rz / p.rx, 1);
-      pMesh.position.set(p.x, 0.02, p.z);
-      this.scene.add(pMesh);
+    gratePositions.forEach(gp => {
+      const grate = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.6), grateMat);
+      grate.rotation.x = -Math.PI / 2;
+      grate.position.set(gp.x, 0.02, gp.z);
+      this.scene.add(grate);
     });
   }
 
   createKeyLandmarks() {
-    // ---- 1. DE SANTA LOUNGE & JAZZ CLUB (NW: center x=-26, z=26) ----
+    // ---- 1. DE SANTA LOUNGE (NW: center x=-26, z=26) ----
     const loungeGroup = new THREE.Group();
     loungeGroup.position.set(-26, 0, 26);
     this.scene.add(loungeGroup);
 
-    // Main Club Building (18w x 14h x 18d)
     const bGeo = new THREE.BoxGeometry(18, 14, 18);
     const bMesh = new THREE.Mesh(bGeo, this.buildingMat);
     bMesh.position.set(0, 7, 0);
@@ -302,98 +259,74 @@ class CityWorld {
     bMesh.receiveShadow = true;
     loungeGroup.add(bMesh);
 
-    // Register Lounge Collider
     this.addBoxCollider(-26, 26, 18.5, 18.5);
 
-    // Art Deco Velvet Canopy
+    // GTA 3 Neon Style Marquee (Hot Pink & Electric Gold)
     const canopyGeo = new THREE.BoxGeometry(8, 0.8, 4.5);
-    const canopyMat = new THREE.MeshStandardMaterial({ color: 0x991818, roughness: 0.3 });
+    const canopyMat = new THREE.MeshStandardMaterial({ color: 0x881133, roughness: 0.3 });
     const canopy = new THREE.Mesh(canopyGeo, canopyMat);
     canopy.position.set(0, 4.2, 9.5);
     canopy.castShadow = true;
     loungeGroup.add(canopy);
 
-    // Canopy Pillar Colliders
-    this.addCircleCollider(-26 - 3.8, 26 + 11.5, 0.4);
-    this.addCircleCollider(-26 + 3.8, 26 + 11.5, 0.4);
-
-    // Glowing Neon Sign: "DE SANTA LOUNGE"
     const signCanvas = document.createElement('canvas');
     signCanvas.width = 512;
     signCanvas.height = 128;
     const sctx = signCanvas.getContext('2d');
-    sctx.fillStyle = '#0a0a0e';
+    sctx.fillStyle = '#08080c';
     sctx.fillRect(0, 0, 512, 128);
-    sctx.strokeStyle = '#d4af37';
+    sctx.strokeStyle = '#ff0066'; // Hot pink neon
     sctx.lineWidth = 6;
     sctx.strokeRect(8, 8, 496, 112);
 
-    sctx.fillStyle = '#ffcc00';
-    sctx.font = 'bold 36px Georgia, serif';
+    sctx.fillStyle = '#ff0066';
+    sctx.font = 'bold 38px Impact, -apple-system, sans-serif';
     sctx.textAlign = 'center';
-    sctx.shadowColor = '#f39c12';
+    sctx.shadowColor = '#ff0066';
     sctx.shadowBlur = 18;
     sctx.fillText('DE SANTA LOUNGE', 256, 55);
-    sctx.font = 'italic 20px Georgia, serif';
-    sctx.fillStyle = '#f5e6b3';
-    sctx.fillText('★ Calme & Sérieux • Jazz Club ★', 256, 92);
+
+    sctx.font = 'bold 20px -apple-system, sans-serif';
+    sctx.fillStyle = '#00ffff'; // Electric cyan
+    sctx.shadowColor = '#00ffff';
+    sctx.fillText('★ CALME & SÉRIEUX • MAFIA CLUB ★', 256, 92);
 
     const signTex = new THREE.CanvasTexture(signCanvas);
-    const signMat = new THREE.MeshBasicMaterial({ map: signTex });
-    const signGeo = new THREE.PlaneGeometry(7.2, 1.8);
-    const signMesh = new THREE.Mesh(signGeo, signMat);
+    const signMesh = new THREE.Mesh(new THREE.PlaneGeometry(7.2, 1.8), new THREE.MeshBasicMaterial({ map: signTex }));
     signMesh.position.set(0, 5.8, 9.6);
     loungeGroup.add(signMesh);
     this.neonSigns.push(signMesh);
 
-    // Warm Gold Lounge Spotlight
-    const clubLight = new THREE.PointLight(0xffaa33, 3.2, 22);
+    const clubLight = new THREE.PointLight(0xff0066, 3.5, 22);
     clubLight.position.set(0, 4.2, 11.5);
     loungeGroup.add(clubLight);
-
-    // Red carpet
-    const carpetGeo = new THREE.PlaneGeometry(2.4, 6.0);
-    const carpetMat = new THREE.MeshStandardMaterial({ color: 0x8b0000, roughness: 0.9 });
-    const carpet = new THREE.Mesh(carpetGeo, carpetMat);
-    carpet.rotation.x = -Math.PI / 2;
-    carpet.position.set(0, 0.23, 11.2);
-    loungeGroup.add(carpet);
 
     // ---- 2. SANTA TRUST BANK (NE: center x=26, z=26) ----
     const bankGroup = new THREE.Group();
     bankGroup.position.set(26, 0, 26);
     this.scene.add(bankGroup);
 
-    // Bank Main Building (20w x 18h x 20d)
-    const bankBldGeo = new THREE.BoxGeometry(20, 18, 20);
-    const bankBld = new THREE.Mesh(bankBldGeo, this.buildingMat);
+    const bankBld = new THREE.Mesh(new THREE.BoxGeometry(20, 18, 20), this.buildingMat);
     bankBld.position.set(0, 9, 0);
     bankBld.castShadow = true;
     bankGroup.add(bankBld);
-
-    // Register Bank Collider
     this.addBoxCollider(26, 26, 20.5, 20.5);
 
-    // Neoclassical Columns
     const colMat = new THREE.MeshStandardMaterial({ color: 0xdcd6cd, roughness: 0.35, metalness: 0.1 });
     const colOffsets = [-7, -3.5, 0, 3.5, 7];
     colOffsets.forEach(x => {
-      const colGeo = new THREE.CylinderGeometry(0.55, 0.65, 9.5, 16);
-      const col = new THREE.Mesh(colGeo, colMat);
+      const col = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.65, 9.5, 16), colMat);
       col.position.set(x, 4.8, 10.5);
       col.castShadow = true;
       bankGroup.add(col);
       this.addCircleCollider(26 + x, 26 + 10.5, 0.65);
     });
 
-    // Bank Pediment
-    const pedGeo = new THREE.ConeGeometry(9.5, 3.5, 4);
-    const ped = new THREE.Mesh(pedGeo, colMat);
+    const ped = new THREE.Mesh(new THREE.ConeGeometry(9.5, 3.5, 4), colMat);
     ped.position.set(0, 11.5, 10.5);
     ped.rotation.y = Math.PI / 4;
     bankGroup.add(ped);
 
-    // Bank Sign: "SANTA TRUST BANK"
     const bankCanvas = document.createElement('canvas');
     bankCanvas.width = 512;
     bankCanvas.height = 96;
@@ -403,8 +336,8 @@ class CityWorld {
     bctx.strokeStyle = '#c9a84d';
     bctx.lineWidth = 4;
     bctx.strokeRect(6, 6, 500, 84);
-    bctx.fillStyle = '#e8d28a';
-    bctx.font = 'bold 32px Georgia, serif';
+    bctx.fillStyle = '#f1c40f';
+    bctx.font = 'bold 32px Impact, sans-serif';
     bctx.textAlign = 'center';
     bctx.fillText('SANTA TRUST BANK', 256, 58);
 
@@ -418,17 +351,12 @@ class CityWorld {
     audiGroup.position.set(-26, 0, -26);
     this.scene.add(audiGroup);
 
-    // Auditorium Building (22w x 16h x 22d)
-    const audiGeo = new THREE.BoxGeometry(22, 16, 22);
-    const audi = new THREE.Mesh(audiGeo, this.buildingMat);
+    const audi = new THREE.Mesh(new THREE.BoxGeometry(22, 16, 22), this.buildingMat);
     audi.position.set(0, 8, 0);
     audi.castShadow = true;
     audiGroup.add(audi);
-
-    // Register Auditorium Collider
     this.addBoxCollider(-26, -26, 22.5, 22.5);
 
-    // Presentation Marquee Sign
     const audiCanvas = document.createElement('canvas');
     audiCanvas.width = 512;
     audiCanvas.height = 128;
@@ -439,33 +367,24 @@ class CityWorld {
     actx.lineWidth = 5;
     actx.strokeRect(6, 6, 500, 116);
     actx.fillStyle = '#f1c40f';
-    actx.font = 'bold 30px Georgia, serif';
+    actx.font = 'bold 30px Impact, sans-serif';
     actx.textAlign = 'center';
     actx.fillText('GRAND AUDITORIUM', 256, 48);
     actx.fillStyle = '#fff';
-    actx.font = 'bold 22px Georgia, serif';
+    actx.font = 'bold 22px Arial, sans-serif';
     actx.fillText('ORAL PRESENTATION: MICHELLE', 256, 85);
-    actx.fillStyle = '#baa785';
-    actx.font = 'italic 16px Georgia, serif';
-    actx.fillText('"A True Friend in Any Situation"', 256, 112);
 
-    const audiTex = new THREE.CanvasTexture(audiCanvas);
-    const audiSign = new THREE.Mesh(new THREE.PlaneGeometry(8.5, 2.1), new THREE.MeshBasicMaterial({ map: audiTex }));
+    const audiSign = new THREE.Mesh(new THREE.PlaneGeometry(8.5, 2.1), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(audiCanvas) }));
     audiSign.position.set(0, 6.5, 11.2);
     audiGroup.add(audiSign);
     this.neonSigns.push(audiSign);
 
-    // Stage Platform
-    const stageGeo = new THREE.BoxGeometry(8, 0.8, 5);
-    const stageMat = new THREE.MeshStandardMaterial({ color: 0x5a3d28, roughness: 0.5 });
-    const stage = new THREE.Mesh(stageGeo, stageMat);
+    // Stage
+    const stage = new THREE.Mesh(new THREE.BoxGeometry(8, 0.8, 5), new THREE.MeshStandardMaterial({ color: 0x5a3d28 }));
     stage.position.set(0, 0.4, 13.5);
     audiGroup.add(stage);
 
-    // Podium on stage
-    const podiumGeo = new THREE.BoxGeometry(0.8, 1.2, 0.6);
-    const podiumMat = new THREE.MeshStandardMaterial({ color: 0x221710, roughness: 0.4 });
-    const podium = new THREE.Mesh(podiumGeo, podiumMat);
+    const podium = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.2, 0.6), new THREE.MeshStandardMaterial({ color: 0x221710 }));
     podium.position.set(0, 1.4, 13.5);
     audiGroup.add(podium);
 
@@ -474,129 +393,74 @@ class CityWorld {
     shopGroup.position.set(26, 0, -26);
     this.scene.add(shopGroup);
 
-    const shopGeo = new THREE.BoxGeometry(20, 14, 20);
-    const shop = new THREE.Mesh(shopGeo, this.buildingMat);
+    const shop = new THREE.Mesh(new THREE.BoxGeometry(20, 14, 20), this.buildingMat);
     shop.position.set(0, 7, 0);
     shopGroup.add(shop);
-
-    // Register Shop Collider
     this.addBoxCollider(26, -26, 20.5, 20.5);
 
-    // Tailor Shop Awning
-    const awningGeo = new THREE.BoxGeometry(6, 0.5, 3.2);
-    const awningMat = new THREE.MeshStandardMaterial({ color: 0x1d3f5e });
-    const awning = new THREE.Mesh(awningGeo, awningMat);
-    awning.position.set(-4.5, 3.8, 10.5);
-    shopGroup.add(awning);
+    const awningL = new THREE.Mesh(new THREE.BoxGeometry(6, 0.5, 3.2), new THREE.MeshStandardMaterial({ color: 0x1d3f5e }));
+    awningL.position.set(-4.5, 3.8, 10.5);
+    shopGroup.add(awningL);
 
-    // Baker Shop Awning
-    const bAwningMat = new THREE.MeshStandardMaterial({ color: 0xa8422b });
-    const bAwning = new THREE.Mesh(awningGeo, bAwningMat);
-    bAwning.position.set(4.5, 3.8, 10.5);
-    shopGroup.add(bAwning);
+    const awningR = new THREE.Mesh(new THREE.BoxGeometry(6, 0.5, 3.2), new THREE.MeshStandardMaterial({ color: 0xa8422b }));
+    awningR.position.set(4.5, 3.8, 10.5);
+    shopGroup.add(awningR);
   }
 
   createCityBuildings() {
-    // Perimeter Skyline Buildings
     const bldPositions = [
-      // North skyline
       { x: -55, z: 50, w: 16, h: 26, d: 16 },
       { x: -35, z: 55, w: 16, h: 32, d: 16 },
       { x: 35, z: 55, w: 16, h: 28, d: 16 },
       { x: 55, z: 50, w: 16, h: 34, d: 16 },
-
-      // South skyline
       { x: -55, z: -50, w: 16, h: 24, d: 16 },
       { x: -35, z: -55, w: 16, h: 36, d: 16 },
       { x: 35, z: -55, w: 16, h: 30, d: 16 },
       { x: 55, z: -50, w: 16, h: 22, d: 16 },
-
-      // West & East edge towers
       { x: -58, z: 0, w: 16, h: 38, d: 24 },
       { x: 58, z: 0, w: 16, h: 42, d: 24 }
     ];
 
     bldPositions.forEach((b) => {
-      const geo = new THREE.BoxGeometry(b.w, b.h, b.d);
-      const mesh = new THREE.Mesh(geo, this.buildingMat);
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(b.w, b.h, b.d), this.buildingMat);
       mesh.position.set(b.x, b.h / 2, b.z);
       mesh.castShadow = true;
       mesh.receiveShadow = true;
       this.scene.add(mesh);
-
-      // Register building collider!
       this.addBoxCollider(b.x, b.z, b.w + 0.5, b.d + 0.5);
     });
   }
 
   createPlazaAndFountain() {
-    // Grand Fountain in Central Plaza (offset x=-7, z=7)
     const fountainGroup = new THREE.Group();
     fountainGroup.position.set(-7, 0, 7);
     this.scene.add(fountainGroup);
 
-    // Stone Basin
-    const basinGeo = new THREE.CylinderGeometry(3.6, 3.9, 0.75, 24);
-    const basinMat = new THREE.MeshStandardMaterial({ color: 0x4a4e54, roughness: 0.5 });
-    const basin = new THREE.Mesh(basinGeo, basinMat);
+    const basin = new THREE.Mesh(new THREE.CylinderGeometry(3.6, 3.9, 0.75, 24), new THREE.MeshStandardMaterial({ color: 0x4a4e54, roughness: 0.5 }));
     basin.position.y = 0.375;
     basin.castShadow = true;
     fountainGroup.add(basin);
-
-    // Register Fountain Cylinder Collider!
     this.addCircleCollider(-7, 7, 3.9);
 
-    // Water Surface
-    const waterGeo = new THREE.CircleGeometry(3.4, 24);
-    const waterMat = new THREE.MeshStandardMaterial({
-      color: 0x225577,
-      roughness: 0.05,
-      metalness: 0.85,
-      transparent: true,
-      opacity: 0.85
-    });
-    const water = new THREE.Mesh(waterGeo, waterMat);
+    const water = new THREE.Mesh(new THREE.CircleGeometry(3.4, 24), new THREE.MeshStandardMaterial({ color: 0x225577, roughness: 0.05, metalness: 0.85, transparent: true, opacity: 0.85 }));
     water.rotation.x = -Math.PI / 2;
     water.position.y = 0.68;
     fountainGroup.add(water);
 
-    // Central Pedestal
-    const pedGeo = new THREE.CylinderGeometry(0.65, 0.85, 2.2, 16);
-    const ped = new THREE.Mesh(pedGeo, basinMat);
+    const ped = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.85, 2.2, 16), new THREE.MeshStandardMaterial({ color: 0x4a4e54 }));
     ped.position.y = 1.4;
     fountainGroup.add(ped);
 
-    const bowlGeo = new THREE.CylinderGeometry(1.6, 0.8, 0.55, 18);
-    const bowl = new THREE.Mesh(bowlGeo, basinMat);
+    const bowl = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 0.8, 0.55, 18), new THREE.MeshStandardMaterial({ color: 0x4a4e54 }));
     bowl.position.y = 2.4;
     fountainGroup.add(bowl);
 
-    // Splashing Water Particles
-    const pCount = 45;
-    const pGeo = new THREE.BufferGeometry();
-    const pPos = new Float32Array(pCount * 3);
-    for (let i = 0; i < pCount; i++) {
-      pPos[i * 3] = (Math.random() - 0.5) * 1.8;
-      pPos[i * 3 + 1] = 2.5 + Math.random() * 1.5;
-      pPos[i * 3 + 2] = (Math.random() - 0.5) * 1.8;
-    }
-    pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
-    const pMat = new THREE.PointsMaterial({
-      color: 0xcceeff,
-      size: 0.16,
-      transparent: true,
-      opacity: 0.75
-    });
-    this.fountainParticles = new THREE.Points(pGeo, pMat);
-    fountainGroup.add(this.fountainParticles);
-
-    // Plaza Benches
+    // Plaza Benches & Trees
     this.createParkBench(-11, 0.22, 7, 0);
     this.createParkBench(-7, 0.22, 11, Math.PI / 2);
     this.addBoxCollider(-11, 7, 2.2, 0.8);
     this.addBoxCollider(-7, 11, 0.8, 2.2);
 
-    // Plaza Trees
     this.createPlazaTree(-11, 0.22, 11);
     this.addCircleCollider(-11, 11, 0.6);
   }
@@ -622,15 +486,12 @@ class CityWorld {
     const group = new THREE.Group();
     group.position.set(x, y, z);
 
-    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x3d2b1f, roughness: 0.9 });
-    const leavesMat = new THREE.MeshStandardMaterial({ color: 0x243e24, roughness: 0.8 });
-
-    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.32, 4.5), trunkMat);
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.32, 4.5), new THREE.MeshStandardMaterial({ color: 0x3d2b1f }));
     trunk.position.y = 2.25;
     trunk.castShadow = true;
     group.add(trunk);
 
-    const leaves = new THREE.Mesh(new THREE.SphereGeometry(2.0, 10, 10), leavesMat);
+    const leaves = new THREE.Mesh(new THREE.SphereGeometry(2.0, 10, 10), new THREE.MeshStandardMaterial({ color: 0x243e24 }));
     leaves.position.y = 4.8;
     leaves.scale.set(1, 1.3, 1);
     leaves.castShadow = true;
@@ -641,14 +502,10 @@ class CityWorld {
 
   createStreetFurniture() {
     const lampPositions = [
-      { x: -11.5, z: 12 },
-      { x: -11.5, z: -12 },
-      { x: 11.5, z: 12 },
-      { x: 11.5, z: -12 },
-      { x: -11.5, z: 28 },
-      { x: 11.5, z: 28 },
-      { x: -11.5, z: -28 },
-      { x: 11.5, z: -28 }
+      { x: -11.5, z: 12 }, { x: -11.5, z: -12 },
+      { x: 11.5, z: 12 }, { x: 11.5, z: -12 },
+      { x: -11.5, z: 28 }, { x: 11.5, z: 28 },
+      { x: -11.5, z: -28 }, { x: 11.5, z: -28 }
     ];
 
     lampPositions.forEach((lp) => {
@@ -667,36 +524,23 @@ class CityWorld {
     const group = new THREE.Group();
     group.position.set(x, 0.22, z);
 
-    const metalMat = new THREE.MeshStandardMaterial({ color: 0x1f2428, metalness: 0.85, roughness: 0.2 });
-    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.16, 4.8, 12), metalMat);
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.16, 4.8, 12), new THREE.MeshStandardMaterial({ color: 0x1f2428, metalness: 0.85 }));
     post.position.y = 2.4;
     post.castShadow = true;
     group.add(post);
 
-    // Lantern fixture
-    const lanternMat = new THREE.MeshBasicMaterial({ color: 0xffe699 });
-    const lantern = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.18, 0.5, 8), lanternMat);
+    const lantern = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.18, 0.5, 8), new THREE.MeshBasicMaterial({ color: 0xffe699 }));
     lantern.position.y = 4.9;
     group.add(lantern);
 
-    // Warm street light
     const light = new THREE.PointLight(0xffd677, 2.2, 16);
     light.position.set(0, 4.9, 0);
     group.add(light);
 
-    // ---- VOLUMETRIC LIGHT CONE SHAFT (Next-Gen Noir Atmosphere) ----
-    const coneGeo = new THREE.CylinderGeometry(0.22, 2.8, 4.8, 16, 1, true);
-    const coneMat = new THREE.MeshBasicMaterial({
-      color: 0xffd888,
-      transparent: true,
-      opacity: 0.12,
-      side: THREE.DoubleSide,
-      depthWrite: false
-    });
-    const cone = new THREE.Mesh(coneGeo, coneMat);
+    // Volumetric Cone
+    const cone = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 2.8, 4.8, 16, 1, true), new THREE.MeshBasicMaterial({ color: 0xffd888, transparent: true, opacity: 0.12, side: THREE.DoubleSide, depthWrite: false }));
     cone.position.y = 2.4;
     group.add(cone);
-    this.volumetricCones.push(cone);
 
     this.scene.add(group);
   }
@@ -704,15 +548,68 @@ class CityWorld {
   createHydrant(x, y, z) {
     const group = new THREE.Group();
     group.position.set(x, y, z);
-
-    const hMat = new THREE.MeshStandardMaterial({ color: 0xaa2222, metalness: 0.4 });
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.65), hMat);
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.65), new THREE.MeshStandardMaterial({ color: 0xaa2222, metalness: 0.4 }));
     body.position.y = 0.325;
     group.add(body);
-
-    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 8), hMat);
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 8), new THREE.MeshStandardMaterial({ color: 0xaa2222 }));
     cap.position.y = 0.65;
     group.add(cap);
+    this.scene.add(group);
+  }
+
+  spawnParkedCabs() {
+    // Iconic GTA 3 Yellow Cabbies parked along sidewalks
+    const cabConfigs = [
+      { x: -14, z: -18, rot: 0 },
+      { x: 14, z: 22, rot: Math.PI }
+    ];
+
+    cabConfigs.forEach(cfg => {
+      this.createTaxiMesh(cfg.x, cfg.z, cfg.rot);
+      this.addBoxCollider(cfg.x, cfg.z, 2.2, 4.5);
+    });
+  }
+
+  createTaxiMesh(x, z, rot) {
+    const group = new THREE.Group();
+    group.position.set(x, 0, z);
+    group.rotation.y = rot;
+
+    const yellowMat = new THREE.MeshStandardMaterial({ color: 0xf1c40f, roughness: 0.3, metalness: 0.2 });
+    const blackMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8 });
+    const glassMat = new THREE.MeshStandardMaterial({ color: 0x334455, transparent: true, opacity: 0.7 });
+
+    // Chassis
+    const body = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.65, 4.2), yellowMat);
+    body.position.y = 0.6;
+    body.castShadow = true;
+    group.add(body);
+
+    // Roof & Cabin
+    const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.6, 2.2), yellowMat);
+    cabin.position.set(0, 1.15, -0.2);
+    cabin.castShadow = true;
+    group.add(cabin);
+
+    // Windows
+    const win = new THREE.Mesh(new THREE.BoxGeometry(1.52, 0.45, 2.0), glassMat);
+    win.position.set(0, 1.15, -0.2);
+    group.add(win);
+
+    // Taxi Roof Sign ("TAXI")
+    const sign = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.2, 0.3), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+    sign.position.set(0, 1.55, -0.2);
+    group.add(sign);
+
+    // Wheels
+    for (let wx of [-0.9, 0.9]) {
+      for (let wz of [-1.3, 1.3]) {
+        const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.25, 16), blackMat);
+        wheel.rotation.z = Math.PI / 2;
+        wheel.position.set(wx, 0.35, wz);
+        group.add(wheel);
+      }
+    }
 
     this.scene.add(group);
   }
@@ -751,8 +648,7 @@ class CityWorld {
     group.add(head);
 
     if (cfg.hat) {
-      const hatMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
-      const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.28, 0.12, 12), hatMat);
+      const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.28, 0.12, 12), new THREE.MeshStandardMaterial({ color: 0x111111 }));
       hat.position.y = 1.72;
       group.add(hat);
     }
@@ -773,8 +669,7 @@ class CityWorld {
     ctx.textAlign = 'center';
     ctx.fillText(cfg.name, 90, 28);
 
-    const tex = new THREE.CanvasTexture(canvas);
-    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true }));
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas), transparent: true }));
     sprite.scale.set(1.4, 0.38, 1);
     sprite.position.y = 2.1;
     group.add(sprite);
@@ -784,12 +679,11 @@ class CityWorld {
   }
 
   setupWorldBorders() {
-    // City bounds: [-72, 72] on X and Z
     const maxBound = 72;
-    this.colliders.push({ type: 'wall_x', val: -maxBound, side: 1 });  // px must be >= -72
-    this.colliders.push({ type: 'wall_x', val: maxBound, side: -1 });  // px must be <= 72
-    this.colliders.push({ type: 'wall_z', val: -maxBound, side: 1 });  // pz must be >= -72
-    this.colliders.push({ type: 'wall_z', val: maxBound, side: -1 });  // pz must be <= 72
+    this.colliders.push({ type: 'wall_x', val: -maxBound, side: 1 });
+    this.colliders.push({ type: 'wall_x', val: maxBound, side: -1 });
+    this.colliders.push({ type: 'wall_z', val: -maxBound, side: 1 });
+    this.colliders.push({ type: 'wall_z', val: maxBound, side: -1 });
   }
 
   addBoxCollider(centerX, centerZ, width, depth) {
@@ -813,22 +707,20 @@ class CityWorld {
     });
   }
 
-  /**
-   * Resolves collision for a spherical/cylinder actor (player, car)
-   * Returns corrected { x, z, collided }
-   */
   resolveCollision(posX, posZ, radius) {
+    if (!isFinite(posX) || !isFinite(posZ)) {
+      return { x: 0, z: 0, collided: false };
+    }
+
     let x = posX;
     let z = posZ;
     let hasCollided = false;
 
-    // Run 2 iterations for clean corner resolution
     for (let iter = 0; iter < 2; iter++) {
       for (let i = 0; i < this.colliders.length; i++) {
         const c = this.colliders[i];
 
         if (c.type === 'box') {
-          // Closest point on box
           const closeX = Math.max(c.minX, Math.min(x, c.maxX));
           const closeZ = Math.max(c.minZ, Math.min(z, c.maxZ));
 
@@ -839,12 +731,11 @@ class CityWorld {
           if (distSq < radius * radius) {
             hasCollided = true;
             const dist = Math.sqrt(distSq);
-            if (dist > 0.0001) {
+            if (dist > 0.001) {
               const pen = radius - dist;
               x += (dx / dist) * pen;
               z += (dz / dist) * pen;
             } else {
-              // Deep inside: push out along nearest edge
               const dMinX = Math.abs(x - c.minX);
               const dMaxX = Math.abs(x - c.maxX);
               const dMinZ = Math.abs(z - c.minZ);
@@ -866,7 +757,7 @@ class CityWorld {
           if (distSq < minDist * minDist) {
             hasCollided = true;
             const dist = Math.sqrt(distSq);
-            if (dist > 0.0001) {
+            if (dist > 0.001) {
               const pen = minDist - dist;
               x += (dx / dist) * pen;
               z += (dz / dist) * pen;
@@ -876,22 +767,12 @@ class CityWorld {
           }
         }
         else if (c.type === 'wall_x') {
-          if (c.side === 1 && x < c.val + radius) {
-            x = c.val + radius;
-            hasCollided = true;
-          } else if (c.side === -1 && x > c.val - radius) {
-            x = c.val - radius;
-            hasCollided = true;
-          }
+          if (c.side === 1 && x < c.val + radius) { x = c.val + radius; hasCollided = true; }
+          else if (c.side === -1 && x > c.val - radius) { x = c.val - radius; hasCollided = true; }
         }
         else if (c.type === 'wall_z') {
-          if (c.side === 1 && z < c.val + radius) {
-            z = c.val + radius;
-            hasCollided = true;
-          } else if (c.side === -1 && z > c.val - radius) {
-            z = c.val - radius;
-            hasCollided = true;
-          }
+          if (c.side === 1 && z < c.val + radius) { z = c.val + radius; hasCollided = true; }
+          else if (c.side === -1 && z > c.val - radius) { z = c.val - radius; hasCollided = true; }
         }
       }
     }
@@ -900,16 +781,6 @@ class CityWorld {
   }
 
   update(dt) {
-    // Animate fountain particles
-    if (this.fountainParticles) {
-      const pos = this.fountainParticles.geometry.attributes.position.array;
-      for (let i = 1; i < pos.length; i += 3) {
-        pos[i] += Math.sin(Date.now() * 0.005 + i) * 0.015;
-      }
-      this.fountainParticles.geometry.attributes.position.needsUpdate = true;
-    }
-
-    // Subtle neon flicker
     this.neonSigns.forEach(sign => {
       if (Math.random() > 0.985) {
         sign.visible = false;

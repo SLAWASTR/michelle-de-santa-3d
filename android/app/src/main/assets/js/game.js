@@ -17,22 +17,33 @@ class GameEngine {
     // Start already seated in car for instant thrilling drive!
     this.inCar = true;
 
+    // GTA 3 HUD & Clock State
+    this.inGameMinutes = 22 * 60 + 45; // 22:45
+    this._lastClockTick = performance.now();
+    this.health = 100;
+    this.armor = 100;
+
     this.initThree();
     this.initWeather();
     this.initAudioAndSystems();
     this.initInputs();
     this.initMinimap();
+    this.updateHUDStats();
 
     // Start game loop
     this.clock = new THREE.Clock();
     this.animate = this.animate.bind(this);
     requestAnimationFrame(this.animate);
 
-    // Start first mission
+    // Initial vehicle banner and first mission
+    setTimeout(() => {
+      this.showVehicleBanner("DE SANTA ROADSTER V8");
+    }, 400);
+
     setTimeout(() => {
       this.missions.startMission(0);
       this.showToast("★ DRIVING DE SANTA V8: Press W to accelerate, A/D to steer, E to exit on foot ★");
-    }, 800);
+    }, 900);
   }
 
   initThree() {
@@ -334,19 +345,69 @@ class GameEngine {
 
   toggleCarEnterExit() {
     if (this.inCar) {
-      // Exit Car
+      // Exit Car safely without collision clipping
       this.inCar = false;
       this.car.exitCar();
       this.player.state = 'idle';
       this.player.group.visible = true;
 
-      const sidePos = new THREE.Vector3(-2.0, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.car.rotation.y);
-      this.player.position.copy(this.car.position).add(sidePos);
-      this.player.position.y = 0;
+      // Test multiple exit positions around the car to ensure player never spawns in a wall
+      const carRot = this.car.rotation.y;
+      const candidates = [
+        new THREE.Vector3(-2.2, 0, 0),   // Driver side (left)
+        new THREE.Vector3(2.2, 0, 0),    // Passenger side (right)
+        new THREE.Vector3(0, 0, -3.2),   // Rear
+        new THREE.Vector3(0, 0, 3.2),    // Front
+        new THREE.Vector3(-1.8, 0, -1.8),
+        new THREE.Vector3(1.8, 0, -1.8)
+      ];
 
-      document.getElementById('car-hud').classList.remove('visible');
+      let safeX = this.car.position.x - 2.2;
+      let safeZ = this.car.position.z;
+      let foundClearSpot = false;
+
+      for (const off of candidates) {
+        const testPos = off.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), carRot).add(this.car.position);
+        if (this.world && this.world.resolveCollision) {
+          const res = this.world.resolveCollision(testPos.x, testPos.z, this.player.radius + 0.2);
+          if (!res.collided) {
+            safeX = testPos.x;
+            safeZ = testPos.z;
+            foundClearSpot = true;
+            break;
+          }
+        }
+      }
+
+      if (!foundClearSpot && this.world && this.world.resolveCollision) {
+        // Fallback: resolve from default driver side
+        const defPos = new THREE.Vector3(-2.2, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), carRot).add(this.car.position);
+        const res = this.world.resolveCollision(defPos.x, defPos.z, this.player.radius);
+        safeX = res.x;
+        safeZ = res.z;
+      }
+
+      // Safeguard against NaN
+      if (!isFinite(safeX) || !isFinite(safeZ)) {
+        safeX = 0;
+        safeZ = 5;
+      }
+
+      this.player.position.set(safeX, 0, safeZ);
+      this.player.velocity.set(0, 0, 0);
+      this.player.isGrounded = true;
+
+      const carHud = document.getElementById('car-hud');
+      if (carHud) carHud.classList.remove('visible');
+
+      const carBanner = document.getElementById('car-name-banner');
+      if (carBanner) carBanner.classList.remove('visible');
+
       const dBtn = document.getElementById('btn-touch-drive');
-      if (dBtn) dBtn.querySelector('label').textContent = 'Drive';
+      if (dBtn) {
+        const lbl = dBtn.querySelector('label');
+        if (lbl) lbl.textContent = 'Drive';
+      }
       this.showToast("Exited De Santa V8 — Walking on foot");
     } else {
       // Enter Car within 8 meters
@@ -356,14 +417,47 @@ class GameEngine {
         this.car.enterCar();
         this.player.state = 'driving';
         this.player.group.visible = false;
+        this.player.position.copy(this.car.position);
 
-        document.getElementById('car-hud').classList.add('visible');
+        this.showVehicleBanner("DE SANTA ROADSTER V8");
+
+        const carHud = document.getElementById('car-hud');
+        if (carHud) carHud.classList.add('visible');
+
         const dBtn = document.getElementById('btn-touch-drive');
-        if (dBtn) dBtn.querySelector('label').textContent = 'Exit';
+        if (dBtn) {
+          const lbl = dBtn.querySelector('label');
+          if (lbl) lbl.textContent = 'Exit';
+        }
         this.showToast("Driving De Santa V8 Roadster");
       } else {
         this.showToast("Get closer to the V8 Roadster to drive!");
       }
+    }
+  }
+
+  showVehicleBanner(title) {
+    const banner = document.getElementById('car-name-banner');
+    const titleEl = document.getElementById('car-banner-title');
+    if (titleEl) titleEl.textContent = title;
+    if (banner) {
+      banner.classList.add('visible');
+      clearTimeout(this._bannerTimer);
+      this._bannerTimer = setTimeout(() => {
+        banner.classList.remove('visible');
+      }, 4200);
+    }
+  }
+
+  showMissionPassed(rewardText = "+$500") {
+    const banner = document.getElementById('mission-passed-banner');
+    const rewEl = document.getElementById('passed-reward-text');
+    if (rewEl) rewEl.textContent = rewardText;
+    if (banner) {
+      banner.classList.add('show');
+      setTimeout(() => {
+        banner.classList.remove('show');
+      }, 3500);
     }
   }
 
@@ -449,17 +543,39 @@ class GameEngine {
   }
 
   updateHUDStats() {
+    // Profile card stats
     const loyaltyFill = document.getElementById('stat-loyalty');
     const cashEl = document.getElementById('stat-cash');
-    if (loyaltyFill) loyaltyFill.style.width = `${this.missions.loyaltyScore}%`;
-    if (cashEl) cashEl.textContent = `$${this.missions.cashBalance}`;
+    if (loyaltyFill && this.missions) loyaltyFill.style.width = `${this.missions.loyaltyScore}%`;
+    if (cashEl && this.missions) cashEl.textContent = `$${this.missions.cashBalance}`;
+
+    // GTA 3 Iconic Stats Cluster
+    const hudHealth = document.getElementById('hud-health-val');
+    const hudArmor = document.getElementById('hud-armor-val');
+    const hudCash = document.getElementById('hud-cash-val');
+    const gtaClock = document.getElementById('gta-clock');
+
+    if (hudHealth) hudHealth.textContent = this.health;
+    if (hudArmor) hudArmor.textContent = this.armor;
+
+    if (hudCash && this.missions) {
+      // Classic GTA leading zeroes: e.g. $00001200
+      const cashStr = String(Math.max(0, this.missions.cashBalance)).padStart(8, '0');
+      hudCash.textContent = `$${cashStr}`;
+    }
+
+    if (gtaClock) {
+      const hh = String(Math.floor(this.inGameMinutes / 60) % 24).padStart(2, '0');
+      const mm = String(Math.floor(this.inGameMinutes % 60)).padStart(2, '0');
+      gtaClock.textContent = `${hh}:${mm}`;
+    }
   }
 
   initMinimap() {
     this.mmCanvas = document.getElementById('minimap-canvas');
     if (this.mmCanvas) {
-      this.mmCanvas.width = 110;
-      this.mmCanvas.height = 110;
+      this.mmCanvas.width = 124;
+      this.mmCanvas.height = 124;
       this.mmCtx = this.mmCanvas.getContext('2d');
     }
   }
@@ -471,58 +587,116 @@ class GameEngine {
     const h = this.mmCanvas.height;
     const cx = w / 2;
     const cy = h / 2;
-    const scale = 0.65;
+    const scale = 0.58;
 
     ctx.clearRect(0, 0, w, h);
 
-    ctx.fillStyle = '#101218';
+    // GTA 3 Dark Radar Background
+    ctx.fillStyle = '#141a22';
     ctx.fillRect(0, 0, w, h);
 
     // City street grid
-    ctx.strokeStyle = '#2b313d';
-    ctx.lineWidth = 14 * scale;
+    ctx.strokeStyle = '#26303d';
+    ctx.lineWidth = 16 * scale;
     ctx.beginPath();
     ctx.moveTo(cx, 0); ctx.lineTo(cx, h);
     ctx.moveTo(0, cy); ctx.lineTo(w, cy);
     ctx.stroke();
 
+    // Secondary streets
+    ctx.strokeStyle = '#1d2530';
+    ctx.lineWidth = 8 * scale;
+    ctx.beginPath();
+    ctx.moveTo(cx - 30 * scale, 0); ctx.lineTo(cx - 30 * scale, h);
+    ctx.moveTo(cx + 30 * scale, 0); ctx.lineTo(cx + 30 * scale, h);
+    ctx.moveTo(0, cy - 30 * scale); ctx.lineTo(w, cy - 30 * scale);
+    ctx.moveTo(0, cy + 30 * scale); ctx.lineTo(w, cy + 30 * scale);
+    ctx.stroke();
+
+    // Radar concentric rings
+    ctx.strokeStyle = 'rgba(70, 90, 115, 0.35)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(cx, cy, w * 0.28, 0, Math.PI * 2);
+    ctx.arc(cx, cy, w * 0.46, 0, Math.PI * 2);
+    ctx.stroke();
+
     const focusPos = this.inCar ? this.car.position : this.player.position;
     const focusRot = this.inCar ? this.car.rotation.y : this.player.rotation.y;
 
-    // Car icon (blue)
+    // Parked Cabs (yellow dots)
+    if (this.world && this.world.parkedCabs) {
+      ctx.fillStyle = '#ffd700';
+      this.world.parkedCabs.forEach(cab => {
+        const cX = cx + (cab.position.x - focusPos.x) * scale;
+        const cY = cy + (cab.position.z - focusPos.z) * scale;
+        if (Math.hypot(cX - cx, cY - cy) < w * 0.46) {
+          ctx.beginPath();
+          ctx.arc(cX, cY, 2.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      });
+    }
+
+    // De Santa V8 Roadster icon (cyan dot when player is on foot)
     if (!this.inCar) {
       const cMapX = cx + (this.car.position.x - focusPos.x) * scale;
       const cMapY = cy + (this.car.position.z - focusPos.z) * scale;
-      ctx.fillStyle = '#3498db';
-      ctx.beginPath();
-      ctx.arc(cMapX, cMapY, 5, 0, Math.PI * 2);
-      ctx.fill();
+      if (Math.hypot(cMapX - cx, cMapY - cy) < w * 0.46) {
+        ctx.fillStyle = '#00ddff';
+        ctx.beginPath();
+        ctx.arc(cMapX, cMapY, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
 
-    // Mission target beacon
+    // Mission target beacon (flashing yellow GTA 3 blip)
     if (this.missions.currentMission && this.missions.currentMission.targetPos) {
       const tgt = this.missions.currentMission.targetPos;
-      const tMapX = cx + (tgt.x - focusPos.x) * scale;
-      const tMapY = cy + (tgt.z - focusPos.z) * scale;
-      ctx.fillStyle = '#f1c40f';
+      let tMapX = cx + (tgt.x - focusPos.x) * scale;
+      let tMapY = cy + (tgt.z - focusPos.z) * scale;
+      const distFromCenter = Math.hypot(tMapX - cx, tMapY - cy);
+      const maxRadarRadius = w * 0.44;
+
+      // Clamp to radar edge if target is off-screen
+      if (distFromCenter > maxRadarRadius) {
+        const angle = Math.atan2(tMapY - cy, tMapX - cx);
+        tMapX = cx + Math.cos(angle) * maxRadarRadius;
+        tMapY = cy + Math.sin(angle) * maxRadarRadius;
+      }
+
+      const pulse = 0.8 + Math.sin(performance.now() * 0.008) * 0.2;
+      ctx.fillStyle = '#ffff00';
       ctx.beginPath();
-      ctx.arc(tMapX, tMapY, 6, 0, Math.PI * 2);
+      ctx.arc(tMapX, tMapY, 5 * pulse, 0, Math.PI * 2);
       ctx.fill();
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
     }
 
-    // Player arrow in center
+    // Center Player / Car Arrow (pointing player heading)
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(-focusRot);
-    ctx.fillStyle = this.inCar ? '#f39c12' : '#2ecc71';
+    ctx.fillStyle = this.inCar ? '#f1c40f' : '#2ecc71';
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(0, -7);
-    ctx.lineTo(6, 6);
-    ctx.lineTo(0, 3);
-    ctx.lineTo(-6, 6);
+    ctx.moveTo(0, -8);
+    ctx.lineTo(7, 7);
+    ctx.lineTo(0, 3.5);
+    ctx.lineTo(-7, 7);
     ctx.closePath();
     ctx.fill();
+    ctx.stroke();
     ctx.restore();
+
+    // North 'N' pointer on rim
+    ctx.fillStyle = '#8ea4be';
+    ctx.font = 'bold 10px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('N', cx, 12);
   }
 
   onWindowResize() {
@@ -534,8 +708,34 @@ class GameEngine {
   animate() {
     requestAnimationFrame(this.animate);
 
+    try {
+      this.updateFrame();
+    } catch (err) {
+      console.error("Frame loop caught error:", err);
+    }
+  }
+
+  updateFrame() {
     const rawDt = Math.min(this.clock.getDelta(), 0.1);
     const dt = rawDt * this.timeScale;
+
+    // Smooth In-game GTA Clock: +1 in-game minute every 2.5 real seconds
+    const now = performance.now();
+    if (now - this._lastClockTick > 2500) {
+      this.inGameMinutes++;
+      this._lastClockTick = now;
+      this.updateHUDStats();
+    }
+
+    // Safeguard coordinates against NaN
+    if (!isFinite(this.player.position.x) || !isFinite(this.player.position.z)) {
+      this.player.position.set(0, 0, 5);
+      this.player.velocity.set(0, 0, 0);
+    }
+    if (!isFinite(this.car.position.x) || !isFinite(this.car.position.z)) {
+      this.car.position.set(0, 0, 5);
+      this.car.speed = 0;
+    }
 
     // Movement Inputs
     let fwdInput = 0;
@@ -612,12 +812,15 @@ class GameEngine {
       const speedEl = document.getElementById('gauge-speed');
       if (speedEl) speedEl.textContent = speedKm;
 
-      // Speed Dynamic FOV (Speed sensation from 62 to 74)
+      const bannerSpeedEl = document.getElementById('car-banner-speed');
+      if (bannerSpeedEl) bannerSpeedEl.textContent = `SPEED: ${speedKm} KM/H`;
+
+      // Speed Dynamic FOV
       const targetFov = this.baseFov + (Math.abs(this.car.speed) / this.car.maxSpeed) * 12;
       this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, targetFov, dt * 4);
       this.camera.updateProjectionMatrix();
 
-      // Chase camera
+      // GTA 3 Chase Camera
       const carForward = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.car.rotation.y);
       const targetCamPos = this.car.position.clone().add(new THREE.Vector3(0, 1.8, 0));
       const behindCar = targetCamPos.clone().addScaledVector(carForward, -7.8).add(new THREE.Vector3(0, 3.4, 0));
@@ -627,8 +830,8 @@ class GameEngine {
     }
 
     this.updateWeather(dt);
-    this.world.update(dt);
-    this.missions.update(dt);
+    if (this.world) this.world.update(dt);
+    if (this.missions) this.missions.update(dt);
 
     this.drawMinimap();
     this.renderer.render(this.scene, this.camera);
