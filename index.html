@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0d0f12">
+  <title>Michelle De Santa 3D — The Syndicate of Loyalty</title>
+  <link rel="stylesheet" href="css/game.css">
+  <link rel="icon" type="image/png" href="assets/icon.png">
+</head>
+<body>
+
+  <!-- WebGL Render Canvas -->
+  <div id="game-container">
+    <canvas id="webgl-canvas"></canvas>
+  </div>
+
+  <!-- Film Noir / Bullet Time Vignette -->
+  <div id="noir-vignette"></div>
+
+  <!-- Bullet Time Slow-mo Notice -->
+  <div id="slowmo-notice">★ CALM & SERIOUS FOCUS ★</div>
+
+  <!-- HUD Interface -->
+  <div id="hud">
+    <!-- Top Bar -->
+    <div class="top-bar">
+      <!-- Player Profile Card -->
+      <div class="profile-card">
+        <div class="avatar-wrapper">
+          <img src="assets/michelle_avatar.jpg" alt="Michelle De Santa">
+        </div>
+        <div class="character-info">
+          <div class="char-title">Michelle De Santa</div>
+          <div class="char-motto">Reliable Friend • Calm &amp; Serious</div>
+          <div class="stats-row">
+            <div class="stat-item" title="Loyalty &amp; Respect">
+              <span>🤝</span>
+              <div class="stat-bar-container">
+                <div id="stat-loyalty" class="stat-bar-fill loyalty" style="width: 100%;"></div>
+              </div>
+            </div>
+            <div class="stat-item" title="Not Greedy At All">
+              <span>💰</span>
+              <span id="stat-cash" class="money-badge">$1,200</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Action Buttons & Minimap -->
+      <div class="top-right">
+        <div class="quick-buttons">
+          <button id="btn-sound" class="icon-btn" title="Toggle Jazz Noir Music &amp; Audio">🎵</button>
+          <button id="btn-slide" class="icon-btn" title="View Original Oral Presentation Slide">📜</button>
+        </div>
+
+        <div class="minimap-wrapper">
+          <canvas id="minimap-canvas"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Center Mission Objective Banner -->
+    <div class="objective-container">
+      <div id="objective-tag" class="objective-tag">MISSION 1</div>
+      <div id="current-objective" class="objective-text">Tommy is cornered by thugs in East Alley. Save your friend!</div>
+      <div id="objective-dist" class="objective-distance">📍 East Alley: 35m</div>
+    </div>
+
+    <!-- Context Interaction Hint -->
+    <div id="action-hint">[E] Drive De Santa V8</div>
+
+    <!-- Dialogue Box -->
+    <div id="dialog-box">
+      <div class="dialog-portrait">
+        <img id="dialog-avatar" src="assets/michelle_portrait.jpg" alt="Speaker">
+      </div>
+      <div class="dialog-content">
+        <div id="dialog-speaker" class="dialog-speaker">Michelle De Santa</div>
+        <div id="dialog-text" class="dialog-text">"You can always count on me in any difficult situation."</div>
+        <div class="dialog-prompt">Press space / tap to advance</div>
+      </div>
+    </div>
+
+    <!-- Car Dashboard (Visible when driving) -->
+    <div id="car-hud">
+      <div class="car-gauge">
+        <div id="gauge-speed" class="gauge-val">0</div>
+        <div class="gauge-label">KM/H</div>
+      </div>
+      <div class="car-gauge">
+        <div class="gauge-val" style="color:#2ecc71;">V8</div>
+        <div class="gauge-label">ENGINE</div>
+      </div>
+      <div class="car-gauge">
+        <div class="gauge-val" style="color:#d4af37;">[H]</div>
+        <div class="gauge-label">HORN</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Touch / Mobile Controls (Auto-detected or responsive) -->
+  <div id="touch-controls">
+    <!-- Left Virtual Analog Joystick -->
+    <div id="joystick-zone">
+      <div id="joystick-knob"></div>
+    </div>
+
+    <!-- Right Action Buttons -->
+    <div class="touch-action-buttons">
+      <div class="touch-btn-row">
+        <button id="btn-touch-calm" class="touch-btn" title="Calm Focus">
+          <span>🕶️</span>
+          <label>Calm</label>
+        </button>
+        <button id="btn-touch-cash" class="touch-btn" title="Throw Cash (Not Greedy)">
+          <span>💵</span>
+          <label>Cash</label>
+        </button>
+      </div>
+      <div class="touch-btn-row">
+        <button id="btn-touch-punch" class="touch-btn" title="Punch / Horn">
+          <span>🥊</span>
+          <label>Punch</label>
+        </button>
+        <button id="btn-touch-jump" class="touch-btn" title="Jump / Handbrake">
+          <span>⬆️</span>
+          <label>Jump</label>
+        </button>
+        <button id="btn-touch-drive" class="touch-btn" style="border-color:#2ecc71;" title="Drive / Exit Car">
+          <span>🚗</span>
+          <label>Drive</label>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notifications -->
+  <div id="toast">Mission Complete!</div>
+
+  <!-- Original Presentation Slide Modal -->
+  <div id="slide-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Oral Presentation: Michelle De Santa (Original Reference)</h3>
+        <button id="modal-close" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <img src="assets/michelle_slide.jpg" alt="Michelle De Santa Oral Presentation">
+      </div>
+      <div class="modal-footer">
+        <strong>Character Lore:</strong> Michelle De Santa is young, medium height, good-looking with short dark hair, small beard, earring, striped suit, tie, grey hat, and a big ring. Very reliable, calm &amp; serious, not greedy at all, interesting and never boring!
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/three.min.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/character.js"></script>
+  <script src="js/vehicle.js"></script>
+  <script src="js/city.js"></script>
+  <script src="js/missions.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>

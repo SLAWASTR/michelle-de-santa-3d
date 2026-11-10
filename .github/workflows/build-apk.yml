@@ -1,0 +1,74 @@
+name: Build Android APK & Release
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Set up Gradle 8.2
+      uses: gradle/actions/setup-gradle@v3
+      with:
+        gradle-version: '8.2'
+
+    - name: Build Release APK
+      working-directory: ./android
+      run: gradle assembleRelease --stacktrace
+
+    - name: Rename APK for release
+      run: |
+        cp android/app/build/outputs/apk/release/app-release.apk MichelleDeSanta.apk
+
+    - name: Upload APK to Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: michelle-de-santa-apk
+        path: MichelleDeSanta.apk
+
+    - name: Publish GitHub Release
+      uses: softprops/action-gh-release@v2
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      with:
+        tag_name: v1.0.0
+        name: "Michelle De Santa 3D v1.0.0 (Android APK & macOS)"
+        body: |
+          🎩 **Michelle De Santa 3D: The Syndicate of Loyalty**
+
+          *Reliable Friend • Calm & Serious • Loyal Companion*
+
+          ### 🎮 Что включено:
+          - 🕹️ **Полноценный 3D экшен**: стильный нуарный Санта-Дистрикт, неоновые вывески, Де Санта Лаундж, банк и центральная площадь с фонтаном.
+          - 🎩 **Персонаж Michelle De Santa**: в серой шляпе-федоре с чёрной лентой, полосатом мафиозном костюме, галстуке с серебряным зажимом, серёжкой и фирменным массивным золотым перстнем.
+          - 🏎️ **Винтажный родстер V8**: можно садиться и гонять по городу, дрифтовать, включать фары и сигналить ретро-гудком ("Ahooga!").
+          - 📜 **Сюжетные миссии по лору презентации**:
+            1. *"Надёжный друг"* — выручи друга Томми из переулка ростовщиков.
+            2. *"Вовсе не жадный"* — собери брошенные мешки с деньгами и раздай друзьям района.
+            3. *"Спокойный и серьёзный"* — бескровно разреши вооружённый кризис в банке при помощи «Спокойного фокуса» (Bullet-time).
+            4. *"Никогда не скучно"* — доедь до Гранд Аудиториума и произнеси легендарную устную презентацию под овации и салют!
+          - 🎷 **Процедурный нуар-джаз саундтрек**: контрабас, свинговые щётки, аккорды электропиано и труба.
+          - 📱 **Поддержка сенсорных экранов**: виртуальный аналоговый джойстик и удобные кнопки действий.
+
+          ### 📦 Установка:
+          - **Android**: скачайте `MichelleDeSanta.apk` и установите на телефон.
+          - **macOS**: скачайте `MichelleDeSanta-macOS.zip`, распакуйте и запускайте `MichelleDeSanta.app` в один клик.
+        files: |
+          MichelleDeSanta.apk
+          MichelleDeSanta-macOS.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
