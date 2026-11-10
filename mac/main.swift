@@ -1,9 +1,17 @@
 import Cocoa
 import WebKit
 
+class ConsoleLogger: NSObject, WKScriptMessageHandler {
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        print("[JS LOG]", message.body)
+        fflush(stdout)
+    }
+}
+
 class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var window: NSWindow!
     var webView: WKWebView!
+    var logger: ConsoleLogger!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Configure WebKit
@@ -12,6 +20,35 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         config.preferences.setValue(true, forKey: "developerExtrasEnabled")
         config.defaultWebpagePreferences.allowsContentJavaScript = true
         config.mediaTypesRequiringUserActionForPlayback = []
+
+        let userContent = WKUserContentController()
+        logger = ConsoleLogger()
+        userContent.add(logger, name: "nativeLog")
+        let jsBridge = """
+        (function() {
+            window.onerror = function(msg, url, line, col, error) {
+                window.webkit.messageHandlers.nativeLog.postMessage("WINDOW ERROR: " + msg + " at line " + line + ":" + col + " stack: " + (error ? error.stack : ''));
+            };
+            const origLog = console.log;
+            console.log = function(...args) {
+                origLog.apply(console, args);
+                try { window.webkit.messageHandlers.nativeLog.postMessage("LOG: " + args.join(' ')); } catch(e){}
+            };
+            const origErr = console.error;
+            console.error = function(...args) {
+                origErr.apply(console, args);
+                try { window.webkit.messageHandlers.nativeLog.postMessage("ERROR: " + args.join(' ')); } catch(e){}
+            };
+            const origWarn = console.warn;
+            console.warn = function(...args) {
+                origWarn.apply(console, args);
+                try { window.webkit.messageHandlers.nativeLog.postMessage("WARN: " + args.join(' ')); } catch(e){}
+            };
+        })();
+        """
+        let userScript = WKUserScript(source: jsBridge, injectionTime: .atDocumentStart, forMainFrameOnly: false)
+        userContent.addUserScript(userScript)
+        config.userContentController = userContent
 
         let screenSize = NSScreen.main?.visibleFrame.size ?? CGSize(width: 1280, height: 800)
         let winWidth = min(1280.0, screenSize.width * 0.9)

@@ -116,21 +116,162 @@ class CityWorld {
     this.sidewalkTexture.wrapT = THREE.RepeatWrapping;
     this.sidewalkTexture.repeat.set(4, 4);
 
-    this.roadMat = new THREE.MeshStandardMaterial({ map: this.roadTexture, roughness: 0.45, metalness: 0.1 });
-    this.buildingMat = new THREE.MeshStandardMaterial({ map: this.buildingTexture, roughness: 0.65, metalness: 0.08 });
-    this.sidewalkMat = new THREE.MeshStandardMaterial({ map: this.sidewalkTexture, roughness: 0.8 });
+    // Wet noir asphalt reflecting street lights
+    this.roadMat = new THREE.MeshStandardMaterial({
+      map: this.roadTexture,
+      roughness: 0.38,
+      metalness: 0.32
+    });
+    this.buildingMat = new THREE.MeshStandardMaterial({
+      map: this.buildingTexture,
+      roughness: 0.65,
+      metalness: 0.12
+    });
+    this.sidewalkMat = new THREE.MeshStandardMaterial({
+      map: this.sidewalkTexture,
+      roughness: 0.75,
+      metalness: 0.05
+    });
   }
 
   initCity() {
     this.createSkyAndMoon();
     this.createRoadsAndGround();
+    this.createElevatedTrainTrestle();
     this.createKeyLandmarks();
     this.createCityBuildings();
     this.createPlazaAndFountain();
     this.createStreetFurniture();
+    this.createSteamVents();
     this.spawnParkedCabs();
     this.spawnPedestrians();
     this.setupWorldBorders();
+  }
+
+  createElevatedTrainTrestle() {
+    // Portland Elevated Railway (El-Train)
+    const steelMat = new THREE.MeshStandardMaterial({ color: 0x223533, roughness: 0.55, metalness: 0.85 });
+    const trackBedMat = new THREE.MeshStandardMaterial({ color: 0x3d352e, roughness: 0.8 });
+    const railMat = new THREE.MeshStandardMaterial({ color: 0x8899aa, roughness: 0.2, metalness: 0.95 });
+
+    // 4 Heavy Steel Pillars on Sidewalks
+    const pillarPositions = [
+      { x: -11.5, z: -2 }, { x: 11.5, z: -2 },
+      { x: -11.5, z: -18 }, { x: 11.5, z: -18 }
+    ];
+
+    pillarPositions.forEach(p => {
+      const col = new THREE.Mesh(new THREE.BoxGeometry(1.0, 9.5, 1.0), steelMat);
+      col.position.set(p.x, 4.75, p.z);
+      col.castShadow = true;
+      this.scene.add(col);
+      this.addBoxCollider(p.x, p.z, 1.2, 1.2);
+    });
+
+    // Cross I-beams spanning across the road (y = 9.2)
+    [-2, -18].forEach(z => {
+      const beam = new THREE.Mesh(new THREE.BoxGeometry(26, 0.9, 1.2), steelMat);
+      beam.position.set(0, 9.2, z);
+      beam.castShadow = true;
+      this.scene.add(beam);
+    });
+
+    // Longitudinal Track Bed
+    const bed = new THREE.Mesh(new THREE.BoxGeometry(7.5, 0.45, 120), trackBedMat);
+    bed.position.set(0, 9.8, 0);
+    bed.castShadow = true;
+    this.scene.add(bed);
+
+    // Twin Steel Rails
+    [-1.8, -0.6, 0.6, 1.8].forEach(rx => {
+      const rail = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.2, 120), railMat);
+      rail.position.set(rx, 10.1, 0);
+      this.scene.add(rail);
+    });
+
+    // Portland Blue/Silver Subway Train resting on the tracks
+    const trainGroup = new THREE.Group();
+    trainGroup.position.set(0, 10.3, -5);
+    this.scene.add(trainGroup);
+
+    const carMat = new THREE.MeshStandardMaterial({ color: 0x24426b, roughness: 0.35, metalness: 0.8 });
+    const silverRoofMat = new THREE.MeshStandardMaterial({ color: 0xc8c8c8, roughness: 0.25, metalness: 0.9 });
+    const winMat = new THREE.MeshBasicMaterial({ color: 0xffe077 });
+
+    [-14, 14].forEach(cz => {
+      const trainCar = new THREE.Mesh(new THREE.BoxGeometry(3.0, 3.2, 18), carMat);
+      trainCar.position.set(0, 1.6, cz);
+      trainCar.castShadow = true;
+      trainGroup.add(trainCar);
+
+      const roof = new THREE.Mesh(new THREE.BoxGeometry(2.9, 0.3, 17.8), silverRoofMat);
+      roof.position.set(0, 3.3, cz);
+      trainGroup.add(roof);
+
+      [-1.52, 1.52].forEach(wx => {
+        const winStrip = new THREE.Mesh(new THREE.PlaneGeometry(16, 0.75), winMat);
+        winStrip.position.set(wx, 1.8, cz);
+        winStrip.rotation.y = wx > 0 ? Math.PI / 2 : -Math.PI / 2;
+        trainGroup.add(winStrip);
+      });
+    });
+  }
+
+  createSteamVents() {
+    this.steamParticles = [];
+    this.steamOrigins = [
+      new THREE.Vector3(-11.2, 0.05, 8),
+      new THREE.Vector3(-11.2, 0.05, -8),
+      new THREE.Vector3(11.2, 0.05, 8),
+      new THREE.Vector3(11.2, 0.05, -8)
+    ];
+
+    const puffGeo = new THREE.SphereGeometry(0.2, 6, 6);
+    const puffMat = new THREE.MeshBasicMaterial({
+      color: 0xddeeff,
+      transparent: true,
+      opacity: 0.25,
+      depthWrite: false
+    });
+
+    for (let i = 0; i < 28; i++) {
+      const orig = this.steamOrigins[i % this.steamOrigins.length];
+      const mesh = new THREE.Mesh(puffGeo, puffMat.clone());
+      mesh.position.copy(orig);
+      mesh.position.y += Math.random() * 2.5;
+      mesh.scale.setScalar(0.8 + Math.random() * 1.5);
+      this.scene.add(mesh);
+      this.steamParticles.push({
+        mesh: mesh,
+        orig: orig,
+        speedY: 0.8 + Math.random() * 0.9,
+        driftX: (Math.random() - 0.5) * 0.3,
+        driftZ: (Math.random() - 0.5) * 0.3,
+        maxLife: 2.2 + Math.random() * 1.0,
+        age: Math.random() * 2.0
+      });
+    }
+  }
+
+  updateSteam(dt) {
+    if (!this.steamParticles) return;
+    for (let i = 0; i < this.steamParticles.length; i++) {
+      const p = this.steamParticles[i];
+      p.age += dt;
+      if (p.age >= p.maxLife) {
+        p.age = 0;
+        p.mesh.position.copy(p.orig);
+        p.mesh.position.x += (Math.random() - 0.5) * 0.4;
+        p.mesh.position.z += (Math.random() - 0.5) * 0.4;
+        p.mesh.scale.setScalar(0.7);
+      }
+      p.mesh.position.y += p.speedY * dt;
+      p.mesh.position.x += p.driftX * dt;
+      p.mesh.position.z += p.driftZ * dt;
+      p.mesh.scale.multiplyScalar(1.0 + dt * 0.45);
+      const lifeRatio = p.age / p.maxLife;
+      p.mesh.material.opacity = Math.sin(lifeRatio * Math.PI) * 0.22;
+    }
   }
 
   createSkyAndMoon() {
@@ -781,6 +922,7 @@ class CityWorld {
   }
 
   update(dt) {
+    this.updateSteam(dt);
     this.neonSigns.forEach(sign => {
       if (Math.random() > 0.985) {
         sign.visible = false;

@@ -496,29 +496,35 @@ class MafiaCar {
 
   emitExhaustPuff() {
     const puffGeo = new THREE.SphereGeometry(0.1 + Math.random() * 0.05, 6, 6);
-    const puffMat = new THREE.MeshBasicMaterial({ color: 0xbbbbbb, transparent: true, opacity: 0.55 });
+    const puffMat = new THREE.MeshBasicMaterial({ color: 0x999999, transparent: true, opacity: 0.55 });
     const puff = new THREE.Mesh(puffGeo, puffMat);
 
     const offset = new THREE.Vector3((Math.random() > 0.5 ? 0.48 : -0.48), 0.26, -2.85);
     offset.applyEuler(this.rotation).add(this.position);
     puff.position.copy(offset);
-    puff.velocity = new THREE.Vector3(
+    const vel = new THREE.Vector3(
       (Math.random() - 0.5) * 0.5,
       Math.random() * 0.9 + 0.3,
       (Math.random() - 0.5) * 0.5
     );
 
     this.scene.add(puff);
-    this.exhaustPuffs.push({ mesh: puff, mat: puffMat, life: 0, maxLife: 0.55 });
+    this.exhaustPuffs.push({ mesh: puff, mat: puffMat, velocity: vel, life: 0, maxLife: 0.55 });
   }
 
   updateExhaustPuffs(dt) {
     for (let i = this.exhaustPuffs.length - 1; i >= 0; i--) {
       const p = this.exhaustPuffs[i];
       p.life += dt;
-      p.mesh.position.addScaledVector(p.velocity, dt);
-      p.mesh.scale.multiplyScalar(1.06);
-      p.mat.opacity = (1 - p.life / p.maxLife) * 0.55;
+      if (p.velocity && p.mesh && p.mesh.position) {
+        p.mesh.position.addScaledVector(p.velocity, dt);
+      }
+      if (p.mesh && p.mesh.scale) {
+        p.mesh.scale.multiplyScalar(1.06);
+      }
+      if (p.mat) {
+        p.mat.opacity = Math.max(0, (1 - p.life / p.maxLife) * 0.55);
+      }
 
       if (p.life >= p.maxLife) {
         this.scene.remove(p.mesh);

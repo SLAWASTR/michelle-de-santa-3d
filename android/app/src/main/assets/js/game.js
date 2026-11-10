@@ -48,14 +48,14 @@ class GameEngine {
 
   initThree() {
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x080a0e);
-    this.scene.fog = new THREE.FogExp2(0x080a0e, 0.013);
+    this.scene.background = new THREE.Color(0x131a24);
+    this.scene.fog = new THREE.FogExp2(0x131a24, 0.012);
 
     this.camera = new THREE.PerspectiveCamera(
       62,
       window.innerWidth / window.innerHeight,
       0.1,
-      400
+      450
     );
     this.baseFov = 62;
     this.camera.position.set(0, 4, 12);
@@ -70,29 +70,32 @@ class GameEngine {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.25;
+    this.renderer.toneMappingExposure = 1.35;
 
-    // Rich Cinema Lighting
-    const ambientLight = new THREE.AmbientLight(0x2d3448, 1.5);
+    // Atmospheric GTA 3 Night Lighting
+    const ambientLight = new THREE.AmbientLight(0x283344, 1.4);
     this.scene.add(ambientLight);
 
-    const moonLight = new THREE.DirectionalLight(0xbcd6ff, 1.6);
-    moonLight.position.set(-60, 80, -70);
+    const hemiLight = new THREE.HemisphereLight(0x557799, 0x161d26, 1.2);
+    this.scene.add(hemiLight);
+
+    const moonLight = new THREE.DirectionalLight(0xb8d2ff, 1.8);
+    moonLight.position.set(-65, 85, -75);
     moonLight.castShadow = true;
     moonLight.shadow.mapSize.width = 2048;
     moonLight.shadow.mapSize.height = 2048;
     moonLight.shadow.camera.near = 0.5;
-    moonLight.shadow.camera.far = 200;
-    const d = 65;
+    moonLight.shadow.camera.far = 220;
+    const d = 75;
     moonLight.shadow.camera.left = -d;
     moonLight.shadow.camera.right = d;
     moonLight.shadow.camera.top = d;
     moonLight.shadow.camera.bottom = -d;
-    moonLight.shadow.bias = -0.0003;
+    moonLight.shadow.bias = -0.00025;
     this.scene.add(moonLight);
 
-    const goldFill = new THREE.DirectionalLight(0xffcc77, 0.7);
-    goldFill.position.set(50, 30, 40);
+    const goldFill = new THREE.DirectionalLight(0xffbe66, 0.85);
+    goldFill.position.set(55, 35, 45);
     this.scene.add(goldFill);
 
     window.addEventListener('resize', () => this.onWindowResize());
@@ -711,7 +714,7 @@ class GameEngine {
     try {
       this.updateFrame();
     } catch (err) {
-      console.error("Frame loop caught error:", err);
+      console.error("Frame loop caught error:", err ? (err.message + " \nSTACK: " + err.stack) : err);
     }
   }
 
