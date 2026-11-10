@@ -1,6 +1,7 @@
 /**
  * Michelle De Santa 3D - Master Game Controller
- * Orchestrates Three.js rendering, physics, cameras, input, HUD, and mobile controls.
+ * Fixed Camera-Relative Movement (Zero Inversion), Full Collision System,
+ * and Enhanced Visuals (Rain Particle System, Volumetric Cones, Glow & Reflections).
  */
 
 class GameEngine {
@@ -16,6 +17,7 @@ class GameEngine {
     this.inCar = false;
 
     this.initThree();
+    this.initWeather();
     this.initAudioAndSystems();
     this.initInputs();
     this.initMinimap();
@@ -34,17 +36,17 @@ class GameEngine {
   initThree() {
     // 1. Scene
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x0a0c10); // Noir deep midnight
-    this.scene.fog = new THREE.FogExp2(0x0a0c10, 0.015);
+    this.scene.background = new THREE.Color(0x090b0f);
+    this.scene.fog = new THREE.FogExp2(0x090b0f, 0.014);
 
     // 2. Camera
     this.camera = new THREE.PerspectiveCamera(
       60,
       window.innerWidth / window.innerHeight,
       0.1,
-      300
+      350
     );
-    this.camera.position.set(0, 4, -7);
+    this.camera.position.set(0, 4, 11);
 
     // 3. Renderer
     this.renderer = new THREE.WebGLRenderer({
@@ -57,59 +59,111 @@ class GameEngine {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.1;
+    this.renderer.toneMappingExposure = 1.15;
 
     // 4. Lights
-    const ambientLight = new THREE.AmbientLight(0x222633, 1.2);
+    const ambientLight = new THREE.AmbientLight(0x282f40, 1.4);
     this.scene.add(ambientLight);
 
-    const moonLight = new THREE.DirectionalLight(0xaaccff, 1.4);
-    moonLight.position.set(40, 60, -30);
+    const moonLight = new THREE.DirectionalLight(0xb0d0ff, 1.5);
+    moonLight.position.set(-50, 70, -60);
     moonLight.castShadow = true;
     moonLight.shadow.mapSize.width = 2048;
     moonLight.shadow.mapSize.height = 2048;
     moonLight.shadow.camera.near = 0.5;
-    moonLight.shadow.camera.far = 150;
-    const d = 50;
+    moonLight.shadow.camera.far = 180;
+    const d = 60;
     moonLight.shadow.camera.left = -d;
     moonLight.shadow.camera.right = d;
     moonLight.shadow.camera.top = d;
     moonLight.shadow.camera.bottom = -d;
-    moonLight.shadow.bias = -0.0005;
+    moonLight.shadow.bias = -0.0004;
     this.scene.add(moonLight);
 
-    // Subtle warm rim light
-    const rimLight = new THREE.DirectionalLight(0xffcc88, 0.6);
-    rimLight.position.set(-30, 20, 40);
+    // Subtle warm rim light for noir contrast
+    const rimLight = new THREE.DirectionalLight(0xffbe76, 0.65);
+    rimLight.position.set(40, 30, 50);
     this.scene.add(rimLight);
 
     window.addEventListener('resize', () => this.onWindowResize());
   }
 
+  initWeather() {
+    // Atmospheric Falling Rain Streaks (Noir Mood)
+    const rainCount = 750;
+    const rainGeo = new THREE.BufferGeometry();
+    const rainPos = new Float32Array(rainCount * 6); // 2 vertices per line streak
+
+    for (let i = 0; i < rainCount; i++) {
+      const rx = (Math.random() - 0.5) * 100;
+      const ry = Math.random() * 30 + 0.5;
+      const rz = (Math.random() - 0.5) * 100;
+
+      rainPos[i * 6] = rx;
+      rainPos[i * 6 + 1] = ry;
+      rainPos[i * 6 + 2] = rz;
+
+      // Streak tail tilted with slight wind
+      rainPos[i * 6 + 3] = rx - 0.15;
+      rainPos[i * 6 + 4] = ry - 0.8;
+      rainPos[i * 6 + 5] = rz - 0.05;
+    }
+
+    rainGeo.setAttribute('position', new THREE.BufferAttribute(rainPos, 3));
+    const rainMat = new THREE.LineBasicMaterial({
+      color: 0x88bbdd,
+      transparent: true,
+      opacity: 0.35
+    });
+
+    this.rainLines = new THREE.LineSegments(rainGeo, rainMat);
+    this.scene.add(this.rainLines);
+  }
+
+  updateWeather(dt) {
+    if (!this.rainLines) return;
+    const pos = this.rainLines.geometry.attributes.position.array;
+    const fallSpeed = 38 * dt;
+
+    for (let i = 0; i < pos.length / 6; i++) {
+      pos[i * 6 + 1] -= fallSpeed;
+      pos[i * 6 + 4] -= fallSpeed;
+
+      // Wrap around
+      if (pos[i * 6 + 1] < 0) {
+        const newY = 30 + Math.random() * 5;
+        pos[i * 6 + 1] = newY;
+        pos[i * 6 + 4] = newY - 0.8;
+
+        // Keep centered around player
+        pos[i * 6] = this.player.position.x + (Math.random() - 0.5) * 80;
+        pos[i * 6 + 3] = pos[i * 6] - 0.15;
+        pos[i * 6 + 2] = this.player.position.z + (Math.random() - 0.5) * 80;
+        pos[i * 6 + 5] = pos[i * 6 + 2] - 0.05;
+      }
+    }
+    this.rainLines.geometry.attributes.position.needsUpdate = true;
+  }
+
   initAudioAndSystems() {
-    // World / City
     this.world = new CityWorld(this.scene);
 
-    // Character: Michelle De Santa
     this.player = new MichelleCharacter(this.scene);
     this.player.position.set(0, 0, 4);
 
-    // Vintage Mafia Car: De Santa V8
     this.car = new MafiaCar(this.scene);
     this.car.position.set(-6, 0, 0);
     this.car.rotation.y = Math.PI / 2;
 
-    // Mission System
     this.missions = new MissionManager(this);
 
-    // Camera follow targets
-    this.cameraAngle = Math.PI;
-    this.cameraPitch = 0.25;
-    this.cameraDist = 5.5;
+    // Camera follow parameters
+    this.cameraAngle = Math.PI; // Starts behind player facing North (-Z)
+    this.cameraPitch = 0.28;
+    this.cameraDist = 5.8;
   }
 
   initInputs() {
-    // Keyboard
     window.addEventListener('keydown', (e) => {
       this.keys[e.code] = true;
       window.soundEngine.ensureContext();
@@ -136,7 +190,7 @@ class GameEngine {
       this.keys[e.code] = false;
     });
 
-    // Mouse drag for camera
+    // Mouse drag for camera orbit
     let isMouseDown = false;
     let prevMouseX = 0;
     let prevMouseY = 0;
@@ -153,8 +207,8 @@ class GameEngine {
       if (isMouseDown) {
         const dx = e.clientX - prevMouseX;
         const dy = e.clientY - prevMouseY;
-        this.cameraAngle -= dx * 0.006;
-        this.cameraPitch = Math.max(0.05, Math.min(1.1, this.cameraPitch + dy * 0.005));
+        this.cameraAngle += dx * 0.0055;
+        this.cameraPitch = Math.max(0.06, Math.min(1.15, this.cameraPitch + dy * 0.005));
         prevMouseX = e.clientX;
         prevMouseY = e.clientY;
       }
@@ -165,13 +219,11 @@ class GameEngine {
     });
 
     window.addEventListener('wheel', (e) => {
-      this.cameraDist = Math.max(2.5, Math.min(12, this.cameraDist + e.deltaY * 0.005));
+      this.cameraDist = Math.max(2.6, Math.min(14, this.cameraDist + e.deltaY * 0.005));
     });
 
-    // Mobile / Touch controls
     this.initTouchControls();
 
-    // UI Buttons
     document.getElementById('btn-sound').onclick = () => this.toggleAudio();
     document.getElementById('btn-slide').onclick = () => this.openSlideModal();
     document.getElementById('modal-close').onclick = () => this.closeSlideModal();
@@ -226,7 +278,6 @@ class GameEngine {
     zone.addEventListener('touchend', endHandler);
     zone.addEventListener('touchcancel', endHandler);
 
-    // On-screen action buttons
     this.bindTouchButton('btn-touch-drive', () => this.toggleCarEnterExit());
     this.bindTouchButton('btn-touch-punch', () => {
       if (!this.inCar) this.player.punch();
@@ -279,14 +330,12 @@ class GameEngine {
 
   toggleCarEnterExit() {
     if (this.inCar) {
-      // Exit car
       this.inCar = false;
       this.car.exitCar();
       this.player.state = 'idle';
       this.player.group.visible = true;
 
-      // Position Michelle next to car door
-      const sidePos = new THREE.Vector3(-1.8, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.car.rotation.y);
+      const sidePos = new THREE.Vector3(-1.9, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.car.rotation.y);
       this.player.position.copy(this.car.position).add(sidePos);
       this.player.position.y = 0;
 
@@ -294,13 +343,12 @@ class GameEngine {
       document.getElementById('btn-touch-drive').querySelector('label').textContent = 'Drive';
       this.showToast("Exited De Santa V8");
     } else {
-      // Enter car check distance
       const dist = this.player.position.distanceTo(this.car.position);
       if (dist < 4.5) {
         this.inCar = true;
         this.car.enterCar();
         this.player.state = 'driving';
-        this.player.group.visible = false; // Seated inside
+        this.player.group.visible = false;
 
         document.getElementById('car-hud').classList.add('visible');
         document.getElementById('btn-touch-drive').querySelector('label').textContent = 'Exit';
@@ -319,7 +367,6 @@ class GameEngine {
     if (vignette) vignette.classList.add('calm-focus');
     if (notice) notice.classList.add('active');
 
-    // Bullet-time slow motion for 2.5 seconds
     this.timeScale = 0.25;
 
     setTimeout(() => {
@@ -414,24 +461,22 @@ class GameEngine {
     const h = this.mmCanvas.height;
     const cx = w / 2;
     const cy = h / 2;
-    const scale = 0.7; // City world units to minimap pixels
+    const scale = 0.65;
 
     ctx.clearRect(0, 0, w, h);
 
-    // Dark radar background
-    ctx.fillStyle = '#12141a';
+    ctx.fillStyle = '#101218';
     ctx.fillRect(0, 0, w, h);
 
-    // City grid roads
-    ctx.strokeStyle = '#2d3340';
+    // City grid
+    ctx.strokeStyle = '#2b313d';
     ctx.lineWidth = 14 * scale;
-    // Main avenue
     ctx.beginPath();
     ctx.moveTo(cx, 0); ctx.lineTo(cx, h);
     ctx.moveTo(0, cy); ctx.lineTo(w, cy);
     ctx.stroke();
 
-    // Car icon (blue dot)
+    // Car icon
     const carPos = this.car.position;
     const cMapX = cx + (carPos.x - this.player.position.x) * scale;
     const cMapY = cy + (carPos.z - this.player.position.z) * scale;
@@ -440,7 +485,7 @@ class GameEngine {
     ctx.arc(cMapX, cMapY, 4, 0, Math.PI * 2);
     ctx.fill();
 
-    // Mission objective marker (gold star / dot)
+    // Mission objective marker
     if (this.missions.currentMission && this.missions.currentMission.targetPos) {
       const tgt = this.missions.currentMission.targetPos;
       const tMapX = cx + (tgt.x - this.player.position.x) * scale;
@@ -451,7 +496,7 @@ class GameEngine {
       ctx.fill();
     }
 
-    // Player arrow in center
+    // Player arrow
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(-this.player.rotation.y);
@@ -478,46 +523,56 @@ class GameEngine {
     const rawDt = Math.min(this.clock.getDelta(), 0.1);
     const dt = rawDt * this.timeScale;
 
-    // Read Movement Inputs
-    let moveX = 0;
-    let moveZ = 0;
-    if (this.keys['KeyW'] || this.keys['ArrowUp']) moveZ += 1;
-    if (this.keys['KeyS'] || this.keys['ArrowDown']) moveZ -= 1;
-    if (this.keys['KeyA'] || this.keys['ArrowLeft']) moveX += 1;
-    if (this.keys['KeyD'] || this.keys['ArrowRight']) moveX -= 1;
+    // Movement Inputs
+    let fwdInput = 0;  // +1 = forward (W), -1 = backward (S)
+    let strafeInput = 0; // +1 = right (D), -1 = left (A)
 
-    // Apply Touch Joystick
+    if (this.keys['KeyW'] || this.keys['ArrowUp']) fwdInput += 1;
+    if (this.keys['KeyS'] || this.keys['ArrowDown']) fwdInput -= 1;
+    if (this.keys['KeyD'] || this.keys['ArrowRight']) strafeInput += 1;
+    if (this.keys['KeyA'] || this.keys['ArrowLeft']) strafeInput -= 1;
+
+    // Mobile touch joystick:
+    // Pushing joystick UP (ty < 0) -> move forward (+1)
+    // Pushing joystick DOWN (ty > 0) -> move backward (-1)
+    // Pushing joystick RIGHT (tx > 0) -> move right (+1)
+    // Pushing joystick LEFT (tx < 0) -> move left (-1)
     if (this.touchJoystick.active) {
-      moveX = -this.touchJoystick.x;
-      moveZ = -this.touchJoystick.y;
+      fwdInput = -this.touchJoystick.y;
+      strafeInput = this.touchJoystick.x;
     }
 
     const isSprint = !!this.keys['ShiftLeft'] || !!this.keys['ShiftRight'];
     const isJump = !!this.keys['Space'];
 
     if (!this.inCar) {
-      // Pedestrian Michelle movement
-      const inputVector = new THREE.Vector3(moveX, 0, moveZ);
-      if (inputVector.length() > 0.1) {
-        // Transform input direction relative to camera heading
-        const camAngle = this.cameraAngle;
-        const rotatedDir = new THREE.Vector3(
-          -inputVector.x * Math.cos(camAngle) + inputVector.z * Math.sin(camAngle),
-          0,
-          inputVector.x * Math.sin(camAngle) + inputVector.z * Math.cos(camAngle)
-        ).normalize();
-        this.player.update(dt, rotatedDir, isSprint, isJump);
+      // ---- STANDARD CAMERA-RELATIVE MOVEMENT (ZERO INVERSION) ----
+      // Camera Forward on ground plane: direction from camera towards player
+      const camFwdX = -Math.sin(this.cameraAngle);
+      const camFwdZ = -Math.cos(this.cameraAngle);
+      const camForward = new THREE.Vector3(camFwdX, 0, camFwdZ).normalize();
+
+      // Camera Right on ground plane: perpendicular to forward (screen right)
+      const camRight = new THREE.Vector3(-camFwdZ, 0, camFwdX).normalize();
+
+      // Calculate world movement direction
+      const moveDir = new THREE.Vector3()
+        .addScaledVector(camForward, fwdInput)
+        .addScaledVector(camRight, strafeInput);
+
+      if (moveDir.length() > 0.05) {
+        moveDir.normalize();
+        this.player.update(dt, moveDir, isSprint, isJump, this.world);
       } else {
-        this.player.update(dt, new THREE.Vector3(), false, isJump);
+        this.player.update(dt, new THREE.Vector3(), false, isJump, this.world);
       }
 
-      // Update car idle
-      this.car.update(dt, 0, 0, false);
+      this.car.update(dt, 0, 0, false, this.world);
 
       // Check proximity to car for prompt
       const distToCar = this.player.position.distanceTo(this.car.position);
       const hint = document.getElementById('action-hint');
-      if (distToCar < 4.0) {
+      if (distToCar < 4.2) {
         this.car.promptSprite.visible = true;
         if (hint) {
           hint.textContent = "[E] Drive De Santa V8";
@@ -528,52 +583,47 @@ class GameEngine {
         if (hint) hint.classList.remove('visible');
       }
 
-      // Camera follows Michelle
+      // Smooth camera follow behind Michelle
       const targetCamPos = this.player.position.clone().add(new THREE.Vector3(0, 1.4, 0));
       const camOffset = new THREE.Vector3(
         Math.sin(this.cameraAngle) * this.cameraDist * Math.cos(this.cameraPitch),
         Math.sin(this.cameraPitch) * this.cameraDist,
         Math.cos(this.cameraAngle) * this.cameraDist * Math.cos(this.cameraPitch)
       );
-      this.camera.position.lerp(targetCamPos.clone().add(camOffset), dt * 7);
+      this.camera.position.lerp(targetCamPos.clone().add(camOffset), dt * 8);
       this.camera.lookAt(targetCamPos.clone().add(new THREE.Vector3(0, 0.4, 0)));
     } else {
-      // Driving De Santa V8
-      const steerInput = -moveX;
-      const accelInput = moveZ;
-      this.car.update(dt, steerInput, accelInput, isJump);
+      // Driving V8 Roadster
+      const steer = strafeInput; // +1 = turn right, -1 = turn left
+      const accel = fwdInput;    // +1 = accelerate, -1 = brake/reverse
+      this.car.update(dt, steer, accel, isJump, this.world);
 
-      // Keep Michelle's hidden body synced with car
       this.player.position.copy(this.car.position);
       this.player.rotation.y = this.car.rotation.y;
 
-      // Update Car HUD speedometer
       const speedKm = Math.round(Math.abs(this.car.speed) * 4.2);
       const speedEl = document.getElementById('gauge-speed');
       if (speedEl) speedEl.textContent = speedKm;
 
-      // Chase Camera behind car
+      // Chase camera behind car
       const carForward = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.car.rotation.y);
       const targetCamPos = this.car.position.clone().add(new THREE.Vector3(0, 1.8, 0));
       const behindCar = targetCamPos.clone().addScaledVector(carForward, -7.5).add(new THREE.Vector3(0, 3.2, 0));
 
-      this.camera.position.lerp(behindCar, dt * 5.5);
+      this.camera.position.lerp(behindCar, dt * 6.0);
       this.camera.lookAt(targetCamPos.clone().addScaledVector(carForward, 5));
     }
 
-    // World & missions
+    // Weather & environment updates
+    this.updateWeather(dt);
     this.world.update(dt);
     this.missions.update(dt);
 
-    // Minimap
     this.drawMinimap();
-
-    // Render
     this.renderer.render(this.scene, this.camera);
   }
 }
 
-// Boot game when DOM is ready
 window.addEventListener('DOMContentLoaded', () => {
   window.game = new GameEngine();
 });

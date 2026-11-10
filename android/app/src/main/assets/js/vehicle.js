@@ -1,6 +1,7 @@
 /**
  * Michelle De Santa 3D - 1930s Vintage Mafia Car ("De Santa V8")
- * Full arcade physics, working headlights, suspension lean, steering, and engine audio.
+ * Enhanced graphics, volumetric light beams, red glowing taillights,
+ * and building collision physics.
  */
 
 class MafiaCar {
@@ -13,14 +14,15 @@ class MafiaCar {
     this.position = this.group.position;
     this.rotation = this.group.rotation;
     this.speed = 0;
-    this.maxSpeed = 22.0;
-    this.reverseSpeed = -8.0;
-    this.acceleration = 14.0;
-    this.braking = 22.0;
-    this.friction = 5.0;
+    this.maxSpeed = 24.0;
+    this.reverseSpeed = -9.0;
+    this.acceleration = 16.0;
+    this.braking = 24.0;
+    this.friction = 5.5;
     this.steerAngle = 0;
-    this.maxSteerAngle = 0.55;
-    this.steerSpeed = 2.8;
+    this.maxSteerAngle = 0.52;
+    this.steerSpeed = 3.0;
+    this.radius = 1.35; // Collision radius
 
     this.isOccupied = false;
     this.headlightsOn = true;
@@ -41,36 +43,31 @@ class MafiaCar {
 
     // Materials
     const paintMat = new THREE.MeshStandardMaterial({
-      color: 0x111317, // Deep noir gloss black
-      roughness: 0.2,
-      metalness: 0.8
+      color: 0x0a0c10, // Gloss metallic noir black
+      roughness: 0.18,
+      metalness: 0.85
     });
 
     const chromeMat = new THREE.MeshStandardMaterial({
-      color: 0xd8d8d8,
-      roughness: 0.15,
-      metalness: 0.95
+      color: 0xe0e0e0,
+      roughness: 0.1,
+      metalness: 0.98
     });
 
     const glassMat = new THREE.MeshStandardMaterial({
-      color: 0x668899,
+      color: 0x557788,
       roughness: 0.1,
       metalness: 0.9,
       transparent: true,
-      opacity: 0.7
+      opacity: 0.65
     });
 
     const tireMat = new THREE.MeshStandardMaterial({
-      color: 0x181818,
+      color: 0x141414,
       roughness: 0.9
     });
 
-    const whitewallMat = new THREE.MeshStandardMaterial({
-      color: 0xf0f0f0,
-      roughness: 0.4
-    });
-
-    // 1. Main Chassis & Hood (Long vintage mafia roadster)
+    // 1. Main Chassis & Hood
     const hoodGeo = new THREE.BoxGeometry(1.6, 0.7, 2.8);
     const hoodMesh = new THREE.Mesh(hoodGeo, paintMat);
     hoodMesh.position.set(0, 0.65, 0.6);
@@ -78,19 +75,19 @@ class MafiaCar {
     this.carBodyGroup.add(hoodMesh);
 
     // Rounded Front Radiator Grille
-    const grilleGeo = new THREE.CylinderGeometry(0.5, 0.55, 0.65, 16);
+    const grilleGeo = new THREE.CylinderGeometry(0.5, 0.55, 0.65, 18);
     const grilleMesh = new THREE.Mesh(grilleGeo, chromeMat);
     grilleMesh.position.set(0, 0.65, 2.0);
     grilleMesh.rotation.x = Math.PI / 2;
     this.carBodyGroup.add(grilleMesh);
 
     // Chrome Grille Slats
-    const slatGeo = new THREE.BoxGeometry(0.7, 0.5, 0.05);
+    const slatGeo = new THREE.BoxGeometry(0.72, 0.52, 0.05);
     const slatMesh = new THREE.Mesh(slatGeo, chromeMat);
     slatMesh.position.set(0, 0.65, 2.03);
     this.carBodyGroup.add(slatMesh);
 
-    // 2. Cabin / Roof (Art Deco curved passenger cabin)
+    // 2. Cabin / Roof
     const cabinGeo = new THREE.BoxGeometry(1.5, 0.75, 1.8);
     const cabinMesh = new THREE.Mesh(cabinGeo, paintMat);
     cabinMesh.position.set(0, 1.25, -0.6);
@@ -123,8 +120,8 @@ class MafiaCar {
     trunkMesh.castShadow = true;
     this.carBodyGroup.add(trunkMesh);
 
-    // Spare wheel mounted on trunk (classic 1930s style!)
-    const spareGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.22, 16);
+    // Spare wheel mounted on trunk
+    const spareGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.22, 18);
     const spareMesh = new THREE.Mesh(spareGeo, tireMat);
     spareMesh.position.set(0, 0.8, -2.55);
     spareMesh.rotation.x = Math.PI / 2;
@@ -136,7 +133,7 @@ class MafiaCar {
     spareCap.rotation.x = Math.PI / 2;
     this.carBodyGroup.add(spareCap);
 
-    // Curved Fenders & Running Boards (Sides)
+    // Running Boards & Fenders
     const runningBoardGeo = new THREE.BoxGeometry(0.3, 0.08, 2.2);
     const leftBoard = new THREE.Mesh(runningBoardGeo, chromeMat);
     leftBoard.position.set(-0.95, 0.28, -0.2);
@@ -146,7 +143,6 @@ class MafiaCar {
     rightBoard.position.set(0.95, 0.28, -0.2);
     this.carBodyGroup.add(rightBoard);
 
-    // Curved Wheel Fenders
     const fenderGeo = new THREE.BoxGeometry(0.35, 0.38, 1.1);
     const fLeft = new THREE.Mesh(fenderGeo, paintMat);
     fLeft.position.set(-0.95, 0.55, 1.35);
@@ -174,7 +170,7 @@ class MafiaCar {
     rearBumper.position.set(0, 0.35, -2.58);
     this.carBodyGroup.add(rearBumper);
 
-    // Headlights (Big round vintage buckets)
+    // Headlights (Big round buckets)
     const headlightGeo = new THREE.CylinderGeometry(0.18, 0.22, 0.25, 16);
     const hLeft = new THREE.Mesh(headlightGeo, chromeMat);
     hLeft.position.set(-0.65, 0.75, 1.95);
@@ -186,8 +182,8 @@ class MafiaCar {
     hRight.rotation.x = Math.PI / 2;
     this.carBodyGroup.add(hRight);
 
-    // Headlight glowing lenses
-    const lensMat = new THREE.MeshBasicMaterial({ color: 0xfff0aa });
+    // Glowing Lenses
+    const lensMat = new THREE.MeshBasicMaterial({ color: 0xfffaaa });
     const lensGeo = new THREE.CircleGeometry(0.16, 16);
     const lensL = new THREE.Mesh(lensGeo, lensMat);
     lensL.position.set(-0.65, 0.75, 2.08);
@@ -197,21 +193,60 @@ class MafiaCar {
     lensR.position.set(0.65, 0.75, 2.08);
     this.carBodyGroup.add(lensR);
 
-    // Real Three.js Spotlights casting light forward!
-    this.spotLightL = new THREE.SpotLight(0xfffae0, 2.2, 35, Math.PI / 5, 0.4, 1.5);
+    // Spotlights casting light cones forward
+    this.spotLightL = new THREE.SpotLight(0xfffae0, 2.8, 42, Math.PI / 5, 0.35, 1.5);
     this.spotLightL.position.set(-0.65, 0.75, 2.1);
-    this.spotLightL.target.position.set(-0.65, 0.2, 15);
+    this.spotLightL.target.position.set(-0.65, 0.2, 16);
     this.carBodyGroup.add(this.spotLightL);
     this.carBodyGroup.add(this.spotLightL.target);
 
-    this.spotLightR = new THREE.SpotLight(0xfffae0, 2.2, 35, Math.PI / 5, 0.4, 1.5);
+    this.spotLightR = new THREE.SpotLight(0xfffae0, 2.8, 42, Math.PI / 5, 0.35, 1.5);
     this.spotLightR.position.set(0.65, 0.75, 2.1);
-    this.spotLightR.target.position.set(0.65, 0.2, 15);
+    this.spotLightR.target.position.set(0.65, 0.2, 16);
     this.carBodyGroup.add(this.spotLightR);
     this.carBodyGroup.add(this.spotLightR.target);
 
+    // ---- VOLUMETRIC LIGHT BEAMS (Forward misty beams) ----
+    const beamGeo = new THREE.CylinderGeometry(0.18, 1.8, 12, 16, 1, true);
+    const beamMat = new THREE.MeshBasicMaterial({
+      color: 0xfffaaa,
+      transparent: true,
+      opacity: 0.12,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+
+    const beamL = new THREE.Mesh(beamGeo, beamMat);
+    beamL.position.set(-0.65, 0.65, 7.5);
+    beamL.rotation.x = Math.PI / 2;
+    this.carBodyGroup.add(beamL);
+
+    const beamR = new THREE.Mesh(beamGeo, beamMat);
+    beamR.position.set(0.65, 0.65, 7.5);
+    beamR.rotation.x = Math.PI / 2;
+    this.carBodyGroup.add(beamR);
+
+    this.volumetricBeams = [beamL, beamR];
+
+    // ---- RED GLOWING TAILLIGHTS ----
+    const tailMat = new THREE.MeshBasicMaterial({ color: 0xff2222 });
+    const tailGeo = new THREE.BoxGeometry(0.18, 0.1, 0.05);
+
+    const tailL = new THREE.Mesh(tailGeo, tailMat);
+    tailL.position.set(-0.68, 0.6, -2.52);
+    this.carBodyGroup.add(tailL);
+
+    const tailR = new THREE.Mesh(tailGeo, tailMat);
+    tailR.position.set(0.68, 0.6, -2.52);
+    this.carBodyGroup.add(tailR);
+
+    // Red taillight glow
+    const redLight = new THREE.PointLight(0xff1111, 1.2, 5);
+    redLight.position.set(0, 0.6, -2.7);
+    this.carBodyGroup.add(redLight);
+
     // Dual Exhaust Pipes
-    const pipeGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.3, 8);
+    const pipeGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.32, 8);
     const pipeL = new THREE.Mesh(pipeGeo, chromeMat);
     pipeL.position.set(-0.45, 0.25, -2.6);
     pipeL.rotation.x = Math.PI / 2;
@@ -222,7 +257,7 @@ class MafiaCar {
     pipeR.rotation.x = Math.PI / 2;
     this.carBodyGroup.add(pipeR);
 
-    // 4 WHEELS (with front steering pivots)
+    // 4 WHEELS
     this.wheels = [];
     this.frontSteerPivots = [];
 
@@ -257,7 +292,7 @@ class MafiaCar {
       }
     });
 
-    // Shadow disc under car
+    // Shadow
     const shadowGeo = new THREE.PlaneGeometry(2.4, 5.2);
     const shadowMat = new THREE.MeshBasicMaterial({
       color: 0x000000,
@@ -296,28 +331,33 @@ class MafiaCar {
     this.group.add(this.promptSprite);
   }
 
-  update(dt, inputSteer, inputAccel, isHandbrake) {
-    // Synchronize ground shadow
+  update(dt, inputSteer, inputAccel, isHandbrake, cityWorld) {
     this.carShadow.position.set(this.position.x, 0.02, this.position.z);
     this.carShadow.rotation.z = -this.rotation.y;
 
     if (!this.isOccupied) {
-      // Natural slow deceleration when player is not driving
       if (Math.abs(this.speed) > 0.05) {
         this.speed -= Math.sign(this.speed) * this.friction * dt;
         const forward = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.rotation.y);
-        this.position.addScaledVector(forward, this.speed * dt);
+        let nextX = this.position.x + forward.x * this.speed * dt;
+        let nextZ = this.position.z + forward.z * this.speed * dt;
+        if (cityWorld && cityWorld.resolveCollision) {
+          const res = cityWorld.resolveCollision(nextX, nextZ, this.radius);
+          nextX = res.x;
+          nextZ = res.z;
+        }
+        this.position.x = nextX;
+        this.position.z = nextZ;
       } else {
         this.speed = 0;
       }
       return;
     }
 
-    // Steering input with smooth interpolation
+    // Steering input
     const targetSteer = -inputSteer * this.maxSteerAngle;
     this.steerAngle += (targetSteer - this.steerAngle) * Math.min(1, dt * this.steerSpeed * 3);
 
-    // Apply front wheel visual turn
     this.frontSteerPivots.forEach(pivot => {
       pivot.rotation.y = this.steerAngle;
     });
@@ -334,7 +374,6 @@ class MafiaCar {
         if (this.speed < this.reverseSpeed) this.speed = this.reverseSpeed;
       }
     } else {
-      // Natural rolling friction
       if (Math.abs(this.speed) > 0.1) {
         this.speed -= Math.sign(this.speed) * this.friction * dt;
       } else {
@@ -347,12 +386,12 @@ class MafiaCar {
       this.speed -= Math.sign(this.speed) * this.braking * 1.5 * dt;
     }
 
-    // Vehicle Turning based on speed and steer angle (Ackermann approximation)
+    // Turning based on speed and steer angle
     if (Math.abs(this.speed) > 0.2) {
       const turnFactor = (this.speed / this.maxSpeed) * this.steerAngle * 2.2;
       this.rotation.y += turnFactor * dt;
 
-      // Suspension body roll (lean into turns like a real vintage cruiser)
+      // Suspension body roll
       this.carBodyGroup.rotation.z = THREE.MathUtils.lerp(
         this.carBodyGroup.rotation.z,
         -this.steerAngle * (this.speed / this.maxSpeed) * 0.15,
@@ -362,21 +401,39 @@ class MafiaCar {
       this.carBodyGroup.rotation.z = THREE.MathUtils.lerp(this.carBodyGroup.rotation.z, 0, dt * 6);
     }
 
-    // Apply movement
+    // Move forward
     const forward = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.rotation.y);
-    this.position.addScaledVector(forward, this.speed * dt);
+    let nextX = this.position.x + forward.x * this.speed * dt;
+    let nextZ = this.position.z + forward.z * this.speed * dt;
 
-    // Rotate wheels visually
+    // ---- BUILDING & OBSTACLE COLLISION CHECK ----
+    if (cityWorld && cityWorld.resolveCollision) {
+      const res = cityWorld.resolveCollision(nextX, nextZ, this.radius);
+      if (res.collided) {
+        // Crash reaction: bounce back and lose momentum
+        if (Math.abs(this.speed) > 3.0) {
+          window.soundEngine.playPunch(); // Crash impact thud
+          this.speed = -this.speed * 0.35;
+        }
+      }
+      nextX = res.x;
+      nextZ = res.z;
+    }
+
+    this.position.x = nextX;
+    this.position.z = nextZ;
+
+    // Wheel rotation
     const wheelRotSpeed = (this.speed / 0.38) * dt;
     this.wheels.forEach(w => {
       w.rotation.x += wheelRotSpeed;
     });
 
-    // Update car engine audio
+    // Engine Audio
     const speedRatio = Math.abs(this.speed) / this.maxSpeed;
     window.soundEngine.updateCarEngine(speedRatio);
 
-    // Exhaust smoke puffs when accelerating
+    // Exhaust smoke puffs
     if (inputAccel > 0 && Math.random() > 0.4) {
       this.emitExhaustPuff();
     }
@@ -393,7 +450,6 @@ class MafiaCar {
     });
     const puff = new THREE.Mesh(puffGeo, puffMat);
 
-    // Place at rear exhaust pipes
     const offset = new THREE.Vector3((Math.random() > 0.5 ? 0.45 : -0.45), 0.25, -2.7);
     offset.applyEuler(this.rotation).add(this.position);
     puff.position.copy(offset);
@@ -432,6 +488,7 @@ class MafiaCar {
     this.headlightsOn = !this.headlightsOn;
     this.spotLightL.visible = this.headlightsOn;
     this.spotLightR.visible = this.headlightsOn;
+    this.volumetricBeams.forEach(b => b.visible = this.headlightsOn);
   }
 
   enterCar() {

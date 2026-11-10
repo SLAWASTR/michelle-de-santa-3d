@@ -1,9 +1,7 @@
 /**
  * Michelle De Santa 3D - Character Model & Rig
- * Accurately models Michelle from the presentation:
- * - Grey Fedora Hat with black silk ribbon
- * - Pinstripe dark mobster suit, white shirt, dark tie with silver clip
- * - Big Gold Ring on hand, Earring on ear, trimmed beard & short dark hair
+ * Accurately models Michelle from the presentation with enhanced graphics
+ * and precise building collision resolution.
  */
 
 class MichelleCharacter {
@@ -19,10 +17,11 @@ class MichelleCharacter {
     this.velocity = new THREE.Vector3();
     this.isGrounded = true;
     this.speed = 0;
-    this.walkSpeed = 5.5;
-    this.sprintSpeed = 10.0;
-    this.jumpForce = 7.5;
-    this.gravity = 20.0;
+    this.walkSpeed = 6.0;
+    this.sprintSpeed = 11.0;
+    this.jumpForce = 8.0;
+    this.gravity = 22.0;
+    this.radius = 0.45;
 
     // States: 'idle', 'walk', 'run', 'jump', 'punch', 'throw', 'calm_pose', 'driving'
     this.state = 'idle';
@@ -38,19 +37,27 @@ class MichelleCharacter {
   }
 
   initTextures() {
-    // 1. Pinstripe Suit Texture
+    // 1. High-Res Pinstripe Suit Texture
     const suitCanvas = document.createElement('canvas');
-    suitCanvas.width = 128;
-    suitCanvas.height = 128;
+    suitCanvas.width = 256;
+    suitCanvas.height = 256;
     const sctx = suitCanvas.getContext('2d');
-    sctx.fillStyle = '#1c1f24'; // Dark charcoal suit
-    sctx.fillRect(0, 0, 128, 128);
-    sctx.strokeStyle = 'rgba(160, 175, 190, 0.45)'; // Subtle fine pinstripe
-    sctx.lineWidth = 1.5;
-    for (let x = 8; x < 128; x += 16) {
+    sctx.fillStyle = '#16191f'; // Deep charcoal noir suit
+    sctx.fillRect(0, 0, 256, 256);
+
+    // Fine wool grain
+    for (let i = 0; i < 2000; i++) {
+      sctx.fillStyle = (Math.random() > 0.5) ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.05)';
+      sctx.fillRect(Math.random() * 256, Math.random() * 256, 2, 2);
+    }
+
+    // Elegant silver pinstripes
+    sctx.strokeStyle = 'rgba(180, 195, 215, 0.45)';
+    sctx.lineWidth = 2.0;
+    for (let x = 8; x < 256; x += 16) {
       sctx.beginPath();
       sctx.moveTo(x, 0);
-      sctx.lineTo(x, 128);
+      sctx.lineTo(x, 256);
       sctx.stroke();
     }
     this.suitTexture = new THREE.CanvasTexture(suitCanvas);
@@ -58,63 +65,64 @@ class MichelleCharacter {
     this.suitTexture.wrapT = THREE.RepeatWrapping;
     this.suitTexture.repeat.set(2, 2);
 
-    // 2. Gold Ring / Metal material
+    // 2. Ultra-Shiny Gold Signet Ring Material
     this.goldMaterial = new THREE.MeshStandardMaterial({
-      color: 0xdfb140,
-      metalness: 0.9,
-      roughness: 0.2,
-      emissive: 0x332205
+      color: 0xf1c40f,
+      metalness: 0.95,
+      roughness: 0.15,
+      emissive: 0x3d2805
     });
 
     // 3. Suit Material
     this.suitMaterial = new THREE.MeshStandardMaterial({
       map: this.suitTexture,
-      roughness: 0.7,
-      metalness: 0.1
+      roughness: 0.65,
+      metalness: 0.15
     });
 
-    // 4. Fedora Grey Material
+    // 4. Fedora Grey Material (High-grade felt)
     this.fedoraMaterial = new THREE.MeshStandardMaterial({
-      color: 0x5a5e65, // Classic grey felt
-      roughness: 0.8,
+      color: 0x5a5e66,
+      roughness: 0.75,
       metalness: 0.05
     });
 
-    // 5. Fedora Black Ribbon Material
+    // 5. Fedora Black Silk Ribbon
     this.ribbonMaterial = new THREE.MeshStandardMaterial({
-      color: 0x111111,
-      roughness: 0.4
+      color: 0x0c0c0e,
+      roughness: 0.3,
+      metalness: 0.2
     });
 
     // 6. Skin Tone Material
     this.skinMaterial = new THREE.MeshStandardMaterial({
-      color: 0xe5ba9b,
-      roughness: 0.5
+      color: 0xdfb090,
+      roughness: 0.55
     });
 
     // 7. Hair / Beard Material
     this.hairMaterial = new THREE.MeshStandardMaterial({
-      color: 0x221a15, // Dark brown/black
+      color: 0x1d1714,
       roughness: 0.9
     });
 
     // 8. White Shirt Material
     this.shirtMaterial = new THREE.MeshStandardMaterial({
-      color: 0xf5f5f5,
-      roughness: 0.6
+      color: 0xf5f6f8,
+      roughness: 0.5
     });
 
     // 9. Dark Tie Material
     this.tieMaterial = new THREE.MeshStandardMaterial({
-      color: 0x2a1818,
+      color: 0x221313,
       roughness: 0.3
     });
 
     // 10. Polished Black Shoes Material
     this.shoeMaterial = new THREE.MeshStandardMaterial({
-      color: 0x0a0a0c,
-      roughness: 0.2,
-      metalness: 0.5
+      color: 0x08080a,
+      roughness: 0.15,
+      metalness: 0.6
     });
   }
 
@@ -128,35 +136,35 @@ class MichelleCharacter {
     this.bones.pelvis = pelvis;
 
     // Torso / Suit Jacket
-    const torsoGeo = new THREE.BoxGeometry(0.5, 0.6, 0.28);
+    const torsoGeo = new THREE.BoxGeometry(0.52, 0.62, 0.3);
     const torsoMesh = new THREE.Mesh(torsoGeo, this.suitMaterial);
-    torsoMesh.position.y = 0.3;
+    torsoMesh.position.y = 0.31;
     torsoMesh.castShadow = true;
     pelvis.add(torsoMesh);
     this.bones.torso = torsoMesh;
 
     // White shirt collar visible in V-neck
-    const shirtGeo = new THREE.BoxGeometry(0.2, 0.25, 0.05);
+    const shirtGeo = new THREE.BoxGeometry(0.2, 0.26, 0.05);
     const shirtMesh = new THREE.Mesh(shirtGeo, this.shirtMaterial);
-    shirtMesh.position.set(0, 0.45, 0.13);
+    shirtMesh.position.set(0, 0.46, 0.14);
     pelvis.add(shirtMesh);
 
     // Dark Tie
-    const tieGeo = new THREE.BoxGeometry(0.08, 0.35, 0.04);
+    const tieGeo = new THREE.BoxGeometry(0.08, 0.36, 0.04);
     const tieMesh = new THREE.Mesh(tieGeo, this.tieMaterial);
-    tieMesh.position.set(0, 0.32, 0.15);
+    tieMesh.position.set(0, 0.33, 0.16);
     pelvis.add(tieMesh);
 
     // Silver Tie Clip
     const clipGeo = new THREE.BoxGeometry(0.09, 0.02, 0.02);
-    const clipMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.9 });
+    const clipMat = new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 0.95 });
     const clipMesh = new THREE.Mesh(clipGeo, clipMat);
-    clipMesh.position.set(0, 0.35, 0.17);
+    clipMesh.position.set(0, 0.36, 0.18);
     pelvis.add(clipMesh);
 
     // Head Group
     const headGroup = new THREE.Group();
-    headGroup.position.set(0, 0.68, 0);
+    headGroup.position.set(0, 0.69, 0);
     pelvis.add(headGroup);
     this.bones.head = headGroup;
 
@@ -167,27 +175,27 @@ class MichelleCharacter {
     headMesh.castShadow = true;
     headGroup.add(headMesh);
 
-    // Short dark hair (sides & back)
+    // Short dark hair
     const hairGeo = new THREE.BoxGeometry(0.3, 0.18, 0.3);
     const hairMesh = new THREE.Mesh(hairGeo, this.hairMaterial);
     hairMesh.position.set(0, 0.2, -0.02);
     headGroup.add(hairMesh);
 
     // Trimmed Beard around jaw
-    const beardGeo = new THREE.BoxGeometry(0.29, 0.12, 0.22);
+    const beardGeo = new THREE.BoxGeometry(0.29, 0.13, 0.23);
     const beardMesh = new THREE.Mesh(beardGeo, this.hairMaterial);
     beardMesh.position.set(0, 0.04, 0.05);
     headGroup.add(beardMesh);
 
-    // Left Earring (Gold hoop/stud on left ear as described)
-    const earringGeo = new THREE.TorusGeometry(0.022, 0.006, 6, 12);
+    // Left Earring (Gold hoop on left ear)
+    const earringGeo = new THREE.TorusGeometry(0.024, 0.007, 8, 16);
     const earringMesh = new THREE.Mesh(earringGeo, this.goldMaterial);
     earringMesh.position.set(-0.15, 0.12, 0.0);
     earringMesh.rotation.y = Math.PI / 2;
     headGroup.add(earringMesh);
 
     // Eyes
-    const eyeMat = new THREE.MeshBasicMaterial({ color: 0x1f1f1f });
+    const eyeMat = new THREE.MeshBasicMaterial({ color: 0x181818 });
     const eyeGeo = new THREE.BoxGeometry(0.04, 0.02, 0.02);
     const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
     leftEye.position.set(-0.07, 0.15, 0.145);
@@ -199,55 +207,55 @@ class MichelleCharacter {
     // ---- THE SIGNATURE GREY FEDORA HAT ----
     const hatGroup = new THREE.Group();
     hatGroup.position.set(0, 0.28, 0.02);
-    hatGroup.rotation.x = -0.08; // Cool slight mobster tilt
+    hatGroup.rotation.x = -0.07;
     headGroup.add(hatGroup);
     this.bones.hat = hatGroup;
 
     // Brim (wide, stylishly curved)
-    const brimGeo = new THREE.CylinderGeometry(0.32, 0.34, 0.02, 24);
+    const brimGeo = new THREE.CylinderGeometry(0.33, 0.35, 0.02, 24);
     const brimMesh = new THREE.Mesh(brimGeo, this.fedoraMaterial);
     brimMesh.castShadow = true;
     hatGroup.add(brimMesh);
 
-    // Crown (creased top)
-    const crownGeo = new THREE.CylinderGeometry(0.2, 0.24, 0.22, 20);
+    // Crown
+    const crownGeo = new THREE.CylinderGeometry(0.21, 0.25, 0.23, 22);
     const crownMesh = new THREE.Mesh(crownGeo, this.fedoraMaterial);
-    crownMesh.position.y = 0.11;
+    crownMesh.position.y = 0.115;
     crownMesh.castShadow = true;
     hatGroup.add(crownMesh);
 
-    // Crown pinch (crease top)
-    const creaseGeo = new THREE.BoxGeometry(0.12, 0.05, 0.26);
+    // Crown crease
+    const creaseGeo = new THREE.BoxGeometry(0.13, 0.05, 0.27);
     const creaseMesh = new THREE.Mesh(creaseGeo, this.fedoraMaterial);
-    creaseMesh.position.set(0, 0.22, 0);
+    creaseMesh.position.set(0, 0.23, 0);
     hatGroup.add(creaseMesh);
 
-    // Black Silk Ribbon Band around hat crown
-    const bandGeo = new THREE.CylinderGeometry(0.245, 0.245, 0.05, 20);
+    // Black Silk Ribbon
+    const bandGeo = new THREE.CylinderGeometry(0.255, 0.255, 0.05, 22);
     const bandMesh = new THREE.Mesh(bandGeo, this.ribbonMaterial);
     bandMesh.position.y = 0.035;
     hatGroup.add(bandMesh);
 
     // ---- ARMS & HANDS ----
 
-    // Left Arm (with the famous BIG GOLD RING)
+    // Left Arm (with the BIG GOLD RING)
     const leftShoulder = new THREE.Group();
-    leftShoulder.position.set(-0.32, 0.52, 0);
+    leftShoulder.position.set(-0.33, 0.53, 0);
     pelvis.add(leftShoulder);
     this.bones.leftShoulder = leftShoulder;
 
-    const armGeo = new THREE.BoxGeometry(0.13, 0.32, 0.13);
+    const armGeo = new THREE.BoxGeometry(0.14, 0.33, 0.14);
     const leftUpperArm = new THREE.Mesh(armGeo, this.suitMaterial);
-    leftUpperArm.position.y = -0.16;
+    leftUpperArm.position.y = -0.165;
     leftUpperArm.castShadow = true;
     leftShoulder.add(leftUpperArm);
 
     const leftElbow = new THREE.Group();
-    leftElbow.position.y = -0.32;
+    leftElbow.position.y = -0.33;
     leftShoulder.add(leftElbow);
     this.bones.leftElbow = leftElbow;
 
-    const forearmGeo = new THREE.BoxGeometry(0.12, 0.28, 0.12);
+    const forearmGeo = new THREE.BoxGeometry(0.13, 0.28, 0.13);
     const leftForearm = new THREE.Mesh(forearmGeo, this.suitMaterial);
     leftForearm.position.y = -0.14;
     leftForearm.castShadow = true;
@@ -260,31 +268,31 @@ class MichelleCharacter {
     leftElbow.add(leftHand);
 
     // ---- BIG GOLD SIGNET RING ----
-    const ringGeo = new THREE.TorusGeometry(0.035, 0.015, 8, 16);
+    const ringGeo = new THREE.TorusGeometry(0.038, 0.016, 10, 20);
     const ringMesh = new THREE.Mesh(ringGeo, this.goldMaterial);
     ringMesh.position.set(-0.02, -0.31, 0.02);
     ringMesh.rotation.x = Math.PI / 2;
     leftElbow.add(ringMesh);
 
-    // Ring Gem / Signet crest on top
-    const gemGeo = new THREE.BoxGeometry(0.04, 0.02, 0.04);
+    // Diamond / Signet Crest
+    const gemGeo = new THREE.BoxGeometry(0.045, 0.022, 0.045);
     const gemMesh = new THREE.Mesh(gemGeo, this.goldMaterial);
-    gemMesh.position.set(-0.02, -0.30, 0.045);
+    gemMesh.position.set(-0.02, -0.30, 0.048);
     leftElbow.add(gemMesh);
 
     // Right Arm
     const rightShoulder = new THREE.Group();
-    rightShoulder.position.set(0.32, 0.52, 0);
+    rightShoulder.position.set(0.33, 0.53, 0);
     pelvis.add(rightShoulder);
     this.bones.rightShoulder = rightShoulder;
 
     const rightUpperArm = new THREE.Mesh(armGeo, this.suitMaterial);
-    rightUpperArm.position.y = -0.16;
+    rightUpperArm.position.y = -0.165;
     rightUpperArm.castShadow = true;
     rightShoulder.add(rightUpperArm);
 
     const rightElbow = new THREE.Group();
-    rightElbow.position.y = -0.32;
+    rightElbow.position.y = -0.33;
     rightShoulder.add(rightElbow);
     this.bones.rightElbow = rightElbow;
 
@@ -302,63 +310,63 @@ class MichelleCharacter {
 
     // Left Leg
     const leftHip = new THREE.Group();
-    leftHip.position.set(-0.15, 0, 0);
+    leftHip.position.set(-0.16, 0, 0);
     pelvis.add(leftHip);
     this.bones.leftHip = leftHip;
 
-    const legGeo = new THREE.BoxGeometry(0.16, 0.45, 0.16);
+    const legGeo = new THREE.BoxGeometry(0.17, 0.46, 0.17);
     const leftThigh = new THREE.Mesh(legGeo, this.suitMaterial);
-    leftThigh.position.y = -0.22;
+    leftThigh.position.y = -0.23;
     leftThigh.castShadow = true;
     leftHip.add(leftThigh);
 
     const leftKnee = new THREE.Group();
-    leftKnee.position.y = -0.45;
+    leftKnee.position.y = -0.46;
     leftHip.add(leftKnee);
     this.bones.leftKnee = leftKnee;
 
-    const shinGeo = new THREE.BoxGeometry(0.14, 0.42, 0.14);
+    const shinGeo = new THREE.BoxGeometry(0.15, 0.43, 0.15);
     const leftShin = new THREE.Mesh(shinGeo, this.suitMaterial);
-    leftShin.position.y = -0.21;
+    leftShin.position.y = -0.215;
     leftShin.castShadow = true;
     leftKnee.add(leftShin);
 
-    const shoeGeo = new THREE.BoxGeometry(0.15, 0.1, 0.26);
+    const shoeGeo = new THREE.BoxGeometry(0.16, 0.1, 0.28);
     const leftShoe = new THREE.Mesh(shoeGeo, this.shoeMaterial);
-    leftShoe.position.set(0, -0.44, 0.05);
+    leftShoe.position.set(0, -0.45, 0.05);
     leftKnee.add(leftShoe);
 
     // Right Leg
     const rightHip = new THREE.Group();
-    rightHip.position.set(0.15, 0, 0);
+    rightHip.position.set(0.16, 0, 0);
     pelvis.add(rightHip);
     this.bones.rightHip = rightHip;
 
     const rightThigh = new THREE.Mesh(legGeo, this.suitMaterial);
-    rightThigh.position.y = -0.22;
+    rightThigh.position.y = -0.23;
     rightThigh.castShadow = true;
     rightHip.add(rightThigh);
 
     const rightKnee = new THREE.Group();
-    rightKnee.position.y = -0.45;
+    rightKnee.position.y = -0.46;
     rightHip.add(rightKnee);
     this.bones.rightKnee = rightKnee;
 
     const rightShin = new THREE.Mesh(shinGeo, this.suitMaterial);
-    rightShin.position.y = -0.21;
+    rightShin.position.y = -0.215;
     rightShin.castShadow = true;
     rightKnee.add(rightShin);
 
     const rightShoe = new THREE.Mesh(shoeGeo, this.shoeMaterial);
-    rightShoe.position.set(0, -0.44, 0.05);
+    rightShoe.position.set(0, -0.45, 0.05);
     rightKnee.add(rightShoe);
 
-    // Dynamic ground shadow disc
-    const shadowGeo = new THREE.CircleGeometry(0.45, 20);
+    // Ground shadow disc
+    const shadowGeo = new THREE.CircleGeometry(0.48, 24);
     const shadowMat = new THREE.MeshBasicMaterial({
       color: 0x000000,
       transparent: true,
-      opacity: 0.4
+      opacity: 0.45
     });
     this.shadowDisc = new THREE.Mesh(shadowGeo, shadowMat);
     this.shadowDisc.rotation.x = -Math.PI / 2;
@@ -371,7 +379,7 @@ class MichelleCharacter {
     canvas.width = 256;
     canvas.height = 64;
     const ctx = canvas.getContext('2d');
-    ctx.fillStyle = 'rgba(15, 17, 22, 0.85)';
+    ctx.fillStyle = 'rgba(15, 17, 22, 0.88)';
     ctx.roundRect ? ctx.roundRect(10, 10, 236, 44, 12) : ctx.rect(10, 10, 236, 44);
     ctx.fill();
     ctx.strokeStyle = '#d4af37';
@@ -391,7 +399,7 @@ class MichelleCharacter {
     this.group.add(this.titleSprite);
   }
 
-  update(dt, inputDir, isSprint, isJumpPressed) {
+  update(dt, inputDir, isSprint, isJumpPressed, cityWorld) {
     this.animTime += dt;
 
     if (this.state === 'driving') {
@@ -404,7 +412,6 @@ class MichelleCharacter {
     this.titleSprite.visible = true;
     this.shadowDisc.position.set(this.position.x, 0.02, this.position.z);
 
-    // Action timer cooldowns (punch, throw, pose)
     if (this.actionTimer > 0) {
       this.actionTimer -= dt;
       if (this.actionTimer <= 0) {
@@ -412,29 +419,41 @@ class MichelleCharacter {
       }
     }
 
-    // Apply movement
     const moveLen = inputDir.length();
     const currentSpeed = isSprint ? this.sprintSpeed : this.walkSpeed;
 
     if (this.state !== 'punch' && this.state !== 'throw' && this.state !== 'calm_pose') {
       if (moveLen > 0.05) {
         this.speed = currentSpeed;
-        const targetRot = Math.atan2(inputDir.x, inputDir.z);
 
-        // Smooth rotation
+        // Smooth rotation towards travel direction
+        const targetRot = Math.atan2(inputDir.x, inputDir.z);
         let diff = targetRot - this.rotation.y;
         while (diff < -Math.PI) diff += Math.PI * 2;
         while (diff > Math.PI) diff -= Math.PI * 2;
-        this.rotation.y += diff * Math.min(1, dt * 12);
+        this.rotation.y += diff * Math.min(1, dt * 14);
 
         // Move position
-        const forward = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.rotation.y);
-        this.position.addScaledVector(forward, this.speed * dt);
+        const deltaX = inputDir.x * this.speed * dt;
+        const deltaZ = inputDir.z * this.speed * dt;
+
+        let nextX = this.position.x + deltaX;
+        let nextZ = this.position.z + deltaZ;
+
+        // ---- COLLISION CHECK AGAINST BUILDINGS & OBSTACLES ----
+        if (cityWorld && cityWorld.resolveCollision) {
+          const res = cityWorld.resolveCollision(nextX, nextZ, this.radius);
+          nextX = res.x;
+          nextZ = res.z;
+        }
+
+        this.position.x = nextX;
+        this.position.z = nextZ;
 
         if (this.isGrounded) {
           this.state = isSprint ? 'run' : 'walk';
 
-          // Footstep audio trigger
+          // Footstep audio
           if (Math.sin(this.animTime * (isSprint ? 14 : 9)) > 0.95) {
             if (!this.lastFootstep || (this.animTime - this.lastFootstep > 0.25)) {
               window.soundEngine.playFootstep();
@@ -458,7 +477,7 @@ class MichelleCharacter {
       }
     }
 
-    // Gravity & Ground collision
+    // Gravity
     if (!this.isGrounded) {
       this.velocity.y -= this.gravity * dt;
       this.position.y += this.velocity.y * dt;
@@ -469,7 +488,6 @@ class MichelleCharacter {
       }
     }
 
-    // Run Procedural Animation based on state
     this.animate(dt);
   }
 
@@ -478,18 +496,15 @@ class MichelleCharacter {
     const t = this.animTime;
 
     if (this.state === 'idle') {
-      // Subtle gangster breathing and hat tilt
-      b.torso.position.y = 0.3 + Math.sin(t * 2) * 0.015;
+      b.torso.position.y = 0.31 + Math.sin(t * 2) * 0.015;
       b.head.rotation.y = Math.sin(t * 0.8) * 0.1;
       b.head.rotation.x = Math.sin(t * 1.2) * 0.03;
 
-      // Rest arms comfortably
       b.leftShoulder.rotation.x = 0.05 + Math.sin(t * 1.5) * 0.02;
       b.leftElbow.rotation.x = -0.2;
       b.rightShoulder.rotation.x = 0.05 - Math.sin(t * 1.5) * 0.02;
       b.rightElbow.rotation.x = -0.2;
 
-      // Legs straight
       b.leftHip.rotation.x = 0;
       b.rightHip.rotation.x = 0;
       b.leftKnee.rotation.x = 0;
@@ -499,19 +514,16 @@ class MichelleCharacter {
       const freq = 8;
       const swing = Math.sin(t * freq);
 
-      // Gangster swagger arm swing
-      b.leftShoulder.rotation.x = swing * 0.5;
-      b.rightShoulder.rotation.x = -swing * 0.5;
+      b.leftShoulder.rotation.x = swing * 0.55;
+      b.rightShoulder.rotation.x = -swing * 0.55;
       b.leftElbow.rotation.x = -0.3 + Math.abs(swing) * 0.2;
       b.rightElbow.rotation.x = -0.3 + Math.abs(swing) * 0.2;
 
-      // Legs cycle
-      b.leftHip.rotation.x = -swing * 0.6;
-      b.rightHip.rotation.x = swing * 0.6;
-      b.leftKnee.rotation.x = swing > 0 ? swing * 0.6 : 0;
-      b.rightKnee.rotation.x = swing < 0 ? -swing * 0.6 : 0;
+      b.leftHip.rotation.x = -swing * 0.65;
+      b.rightHip.rotation.x = swing * 0.65;
+      b.leftKnee.rotation.x = swing > 0 ? swing * 0.65 : 0;
+      b.rightKnee.rotation.x = swing < 0 ? -swing * 0.65 : 0;
 
-      // Pelvis subtle bob
       b.pelvis.position.y = 0.95 + Math.abs(Math.sin(t * freq)) * 0.04;
       b.torso.rotation.y = swing * 0.08;
     }
@@ -519,17 +531,16 @@ class MichelleCharacter {
       const freq = 14;
       const swing = Math.sin(t * freq);
 
-      // Fast forward lean
-      b.torso.rotation.x = 0.2;
-      b.leftShoulder.rotation.x = swing * 0.9;
-      b.rightShoulder.rotation.x = -swing * 0.9;
+      b.torso.rotation.x = 0.22;
+      b.leftShoulder.rotation.x = swing * 0.95;
+      b.rightShoulder.rotation.x = -swing * 0.95;
       b.leftElbow.rotation.x = -0.6;
       b.rightElbow.rotation.x = -0.6;
 
-      b.leftHip.rotation.x = -swing * 0.9;
-      b.rightHip.rotation.x = swing * 0.9;
-      b.leftKnee.rotation.x = swing > 0 ? swing * 0.9 : 0.1;
-      b.rightKnee.rotation.x = swing < 0 ? -swing * 0.9 : 0.1;
+      b.leftHip.rotation.x = -swing * 0.95;
+      b.rightHip.rotation.x = swing * 0.95;
+      b.leftKnee.rotation.x = swing > 0 ? swing * 0.95 : 0.1;
+      b.rightKnee.rotation.x = swing < 0 ? -swing * 0.95 : 0.1;
 
       b.pelvis.position.y = 0.95 + Math.abs(Math.sin(t * freq)) * 0.08;
     }
@@ -543,21 +554,18 @@ class MichelleCharacter {
       b.rightKnee.rotation.x = 0.7;
     }
     else if (this.state === 'punch') {
-      // Right jab punch
-      b.rightShoulder.rotation.x = -1.4;
+      b.rightShoulder.rotation.x = -1.45;
       b.rightElbow.rotation.x = 0;
       b.torso.rotation.y = -0.4;
       b.leftShoulder.rotation.x = 0.3;
       b.leftElbow.rotation.x = -0.8;
     }
     else if (this.state === 'throw') {
-      // Throw money: swing left arm forward displaying the ring
-      b.leftShoulder.rotation.x = -1.3;
+      b.leftShoulder.rotation.x = -1.35;
       b.leftElbow.rotation.x = -0.2;
       b.torso.rotation.y = 0.3;
     }
     else if (this.state === 'calm_pose') {
-      // Tipping fedora hat brim with right hand, looking calm & serious
       b.rightShoulder.rotation.x = -1.6;
       b.rightElbow.rotation.x = -1.4;
       b.head.rotation.x = 0.1;
@@ -572,8 +580,6 @@ class MichelleCharacter {
     this.state = 'punch';
     this.actionTimer = 0.35;
     window.soundEngine.playPunch();
-
-    // Visual punch sparkle
     this.createImpactSparks();
   }
 
@@ -582,8 +588,6 @@ class MichelleCharacter {
     this.state = 'throw';
     this.actionTimer = 0.45;
     window.soundEngine.playCashThrow();
-
-    // Spawn flying cash notes in 3D
     this.spawnFlyingCash();
   }
 
@@ -595,30 +599,29 @@ class MichelleCharacter {
 
   createImpactSparks() {
     const sparkGeo = new THREE.BufferGeometry();
-    const count = 12;
+    const count = 16;
     const positions = new Float32Array(count * 3);
     for (let i = 0; i < count * 3; i++) {
-      positions[i] = (Math.random() - 0.5) * 0.4;
+      positions[i] = (Math.random() - 0.5) * 0.45;
     }
     sparkGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     const sparkMat = new THREE.PointsMaterial({
       color: 0xffd700,
-      size: 0.06,
+      size: 0.08,
       transparent: true,
-      opacity: 0.9
+      opacity: 0.95
     });
     const sparks = new THREE.Points(sparkGeo, sparkMat);
 
-    // Position at fist
     const fistPos = new THREE.Vector3(0.3, 1.4, 0.7).applyEuler(this.rotation).add(this.position);
     sparks.position.copy(fistPos);
     this.scene.add(sparks);
 
     let fade = 0;
     const interval = setInterval(() => {
-      fade += 0.1;
+      fade += 0.12;
       sparks.scale.multiplyScalar(1.15);
-      sparkMat.opacity -= 0.15;
+      sparkMat.opacity -= 0.16;
       if (fade >= 1.0) {
         clearInterval(interval);
         this.scene.remove(sparks);
@@ -634,24 +637,24 @@ class MichelleCharacter {
     const spawnPos = this.position.clone().add(new THREE.Vector3(0, 1.3, 0)).addScaledVector(forward, 0.4);
     cashGroup.position.copy(spawnPos);
 
-    const billGeo = new THREE.PlaneGeometry(0.18, 0.09);
+    const billGeo = new THREE.PlaneGeometry(0.2, 0.1);
     const billMat = new THREE.MeshBasicMaterial({
       color: 0x44bb55,
       side: THREE.DoubleSide
     });
 
     const bills = [];
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 7; i++) {
       const bill = new THREE.Mesh(billGeo, billMat);
       bill.position.set(
-        (Math.random() - 0.5) * 0.2,
-        (Math.random() - 0.5) * 0.2,
-        (Math.random() - 0.5) * 0.2
+        (Math.random() - 0.5) * 0.25,
+        (Math.random() - 0.5) * 0.25,
+        (Math.random() - 0.5) * 0.25
       );
       bill.velocity = forward.clone()
-        .add(new THREE.Vector3((Math.random() - 0.5) * 0.8, Math.random() * 0.8 + 0.2, (Math.random() - 0.5) * 0.8))
-        .multiplyScalar(3.5);
-      bill.rotSpeed = new THREE.Vector3(Math.random() * 8, Math.random() * 8, Math.random() * 8);
+        .add(new THREE.Vector3((Math.random() - 0.5) * 0.9, Math.random() * 0.9 + 0.3, (Math.random() - 0.5) * 0.9))
+        .multiplyScalar(3.8);
+      bill.rotSpeed = new THREE.Vector3(Math.random() * 9, Math.random() * 9, Math.random() * 9);
       cashGroup.add(bill);
       bills.push(bill);
     }
@@ -662,11 +665,11 @@ class MichelleCharacter {
       life += 0.04;
       bills.forEach(b => {
         b.position.addScaledVector(b.velocity, 0.04);
-        b.velocity.y -= 0.1; // gravity
+        b.velocity.y -= 0.12;
         b.rotation.x += b.rotSpeed.x * 0.04;
         b.rotation.y += b.rotSpeed.y * 0.04;
       });
-      if (life >= 0.8) {
+      if (life >= 0.85) {
         clearInterval(interval);
         this.scene.remove(cashGroup);
         billGeo.dispose();

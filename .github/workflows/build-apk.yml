@@ -45,8 +45,8 @@ jobs:
       uses: softprops/action-gh-release@v2
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
       with:
-        tag_name: v1.0.0
-        name: "Michelle De Santa 3D v1.0.0 (Android APK & macOS)"
+        tag_name: v1.0.1
+        name: "Michelle De Santa 3D v1.0.1 (Коллизии зданий, Графика & Фикс управления)"
         body: |
           🎩 **Michelle De Santa 3D: The Syndicate of Loyalty**
 
