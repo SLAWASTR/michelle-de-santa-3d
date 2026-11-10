@@ -208,13 +208,20 @@ class GameEngine {
       this.keys[e.code] = false;
     });
 
-    // Mouse drag for camera orbit
+    // Mouse drag for camera orbit & Right click rear-view
     let isMouseDown = false;
+    this.isRightMouseDown = false;
     let prevMouseX = 0;
     let prevMouseY = 0;
 
+    window.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+    });
+
     window.addEventListener('mousedown', (e) => {
-      if (e.target.tagName !== 'BUTTON' && !e.target.closest('#slide-modal')) {
+      if (e.button === 2) {
+        this.isRightMouseDown = true;
+      } else if (e.target.tagName !== 'BUTTON' && !e.target.closest('#slide-modal')) {
         isMouseDown = true;
         prevMouseX = e.clientX;
         prevMouseY = e.clientY;
@@ -232,8 +239,12 @@ class GameEngine {
       }
     });
 
-    window.addEventListener('mouseup', () => {
-      isMouseDown = false;
+    window.addEventListener('mouseup', (e) => {
+      if (e.button === 2) {
+        this.isRightMouseDown = false;
+      } else {
+        isMouseDown = false;
+      }
     });
 
     window.addEventListener('wheel', (e) => {
@@ -819,17 +830,35 @@ class GameEngine {
       if (bannerSpeedEl) bannerSpeedEl.textContent = `SPEED: ${speedKm} KM/H`;
 
       // Speed Dynamic FOV
-      const targetFov = this.baseFov + (Math.abs(this.car.speed) / this.car.maxSpeed) * 12;
-      this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, targetFov, dt * 4);
+      const targetFov = this.baseFov + (Math.abs(this.car.speed) / this.car.maxSpeed) * 14;
+      this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, targetFov, dt * 5);
       this.camera.updateProjectionMatrix();
 
-      // GTA 3 Chase Camera
+      // Look behind check (holding B, R, or right-clicking mouse)
+      const isLookBehind = !!this.keys['KeyB'] || !!this.keys['KeyR'] || this.isRightMouseDown;
+
+      // High-speed visceral camera vibration
+      let shakeX = 0;
+      let shakeY = 0;
+      if (speedKm > 32) {
+        const shakeMag = (speedKm - 32) * 0.001;
+        shakeX = (Math.random() - 0.5) * shakeMag;
+        shakeY = (Math.random() - 0.5) * shakeMag;
+      }
+
+      // Authentic GTA 3 Chase Camera with inertia
       const carForward = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.car.rotation.y);
       const targetCamPos = this.car.position.clone().add(new THREE.Vector3(0, 1.8, 0));
-      const behindCar = targetCamPos.clone().addScaledVector(carForward, -7.8).add(new THREE.Vector3(0, 3.4, 0));
+      
+      const camDistMult = isLookBehind ? 7.6 : -7.8;
+      const camLookMult = isLookBehind ? -8.0 : 6.0;
 
-      this.camera.position.lerp(behindCar, dt * 7.0);
-      this.camera.lookAt(targetCamPos.clone().addScaledVector(carForward, 6.0));
+      const behindCar = targetCamPos.clone()
+        .addScaledVector(carForward, camDistMult)
+        .add(new THREE.Vector3(shakeX, 3.3 + shakeY, 0));
+
+      this.camera.position.lerp(behindCar, dt * 7.5);
+      this.camera.lookAt(targetCamPos.clone().addScaledVector(carForward, camLookMult));
     }
 
     this.updateWeather(dt);

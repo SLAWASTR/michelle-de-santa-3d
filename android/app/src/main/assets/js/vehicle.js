@@ -14,24 +14,31 @@ class MafiaCar {
     this.rotation = this.group.rotation;
 
     this.speed = 0;
-    this.maxSpeed = 32.0;
-    this.reverseSpeed = -14.0;
-    this.acceleration = 26.0;
-    this.braking = 32.0;
-    this.friction = 6.0;
+    this.maxSpeed = 38.0;
+    this.reverseSpeed = -15.0;
+    this.acceleration = 35.0;
+    this.braking = 46.0;
+    this.friction = 4.2;
 
     this.steerAngle = 0;
-    this.maxSteerAngle = 0.54;
-    this.steerSpeed = 4.0;
+    this.maxSteerAngle = 0.58;
+    this.steerSpeed = 6.2;
     this.radius = 1.25;
 
     this.isOccupied = true;
     this.headlightsOn = true;
 
-    this.buildCar();
-    this.createPromptBubble();
+    this.gear = 1;
+    this.rpm = 0.2;
+    this.driftFactor = 0;
 
     this.exhaustPuffs = [];
+    this.tireSmokes = [];
+    this.skidMarks = [];
+    this.sparks = [];
+
+    this.buildCar();
+    this.createPromptBubble();
   }
 
   buildCar() {
@@ -231,15 +238,33 @@ class MafiaCar {
     this.carBodyGroup.add(beamR);
     this.volumetricBeams = [beamL, beamR];
 
-    // Red Taillights
-    const redMat = new THREE.MeshBasicMaterial({ color: 0xff1111 });
-    const tailL = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.12, 0.05), redMat);
+    // Active Brake & Taillights
+    this.tailLightMat = new THREE.MeshStandardMaterial({
+      color: 0x550000,
+      emissive: 0x220000,
+      roughness: 0.2
+    });
+    const tailL = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.12, 0.05), this.tailLightMat);
     tailL.position.set(-0.7, 0.65, -2.68);
     this.carBodyGroup.add(tailL);
 
-    const tailR = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.12, 0.05), redMat);
+    const tailR = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.12, 0.05), this.tailLightMat);
     tailR.position.set(0.7, 0.65, -2.68);
     this.carBodyGroup.add(tailR);
+
+    // Backup Reverse Lights (white)
+    this.revLightMat = new THREE.MeshStandardMaterial({
+      color: 0x222222,
+      emissive: 0x000000,
+      roughness: 0.2
+    });
+    const revL = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.05), this.revLightMat);
+    revL.position.set(-0.48, 0.65, -2.68);
+    this.carBodyGroup.add(revL);
+
+    const revR = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.05), this.revLightMat);
+    revR.position.set(0.48, 0.65, -2.68);
+    this.carBodyGroup.add(revR);
 
     // Dual Exhaust Pipes
     const pipeGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.35, 10);
@@ -401,60 +426,122 @@ class MafiaCar {
         this.speed = 0;
       }
       this.updateExhaustPuffs(dt);
+      this.updateTireSmokes(dt);
+      this.updateSkidMarks(dt);
+      this.updateSparks(dt);
       return;
     }
 
-    // Steering input
-    const targetSteer = -inputSteer * this.maxSteerAngle;
-    this.steerAngle += (targetSteer - this.steerAngle) * Math.min(1, dt * this.steerSpeed * 2.5);
+    // 1. Responsive Steering with speed-adaptive lock
+    const absSpeed = Math.abs(this.speed);
+    const speedRatio = absSpeed / this.maxSpeed;
+    const steerLimit = THREE.MathUtils.lerp(this.maxSteerAngle, 0.44, speedRatio);
+    const targetSteer = -inputSteer * steerLimit;
+    this.steerAngle += (targetSteer - this.steerAngle) * Math.min(1, dt * this.steerSpeed);
 
     this.frontSteerPivots.forEach(pivot => {
       pivot.rotation.y = this.steerAngle;
     });
 
-    // Acceleration & Braking
+    // 2. Throttle, Gears & Braking Dynamics
+    const isBraking = (this.speed > 0.5 && inputAccel < 0) || isHandbrake;
+    const isReversing = (this.speed < -0.1);
+
+    // Dynamic Taillights (glow intense red on brake, white on reverse)
+    if (this.tailLightMat) {
+      if (isBraking) {
+        this.tailLightMat.color.setHex(0xff0000);
+        this.tailLightMat.emissive.setHex(0xdd0000);
+      } else {
+        this.tailLightMat.color.setHex(0x550000);
+        this.tailLightMat.emissive.setHex(0x220000);
+      }
+    }
+    if (this.revLightMat) {
+      this.revLightMat.emissive.setHex(isReversing ? 0xffffff : 0x000000);
+    }
+
+    // 4-Speed Gear Simulation for realistic engine RPM pitch
+    if (absSpeed < 9.0) {
+      this.gear = 1;
+      this.rpm = THREE.MathUtils.lerp(0.25, 0.95, absSpeed / 9.0);
+    } else if (absSpeed < 19.0) {
+      this.gear = 2;
+      this.rpm = THREE.MathUtils.lerp(0.38, 0.95, (absSpeed - 9.0) / 10.0);
+    } else if (absSpeed < 29.0) {
+      this.gear = 3;
+      this.rpm = THREE.MathUtils.lerp(0.48, 0.98, (absSpeed - 19.0) / 10.0);
+    } else {
+      this.gear = 4;
+      this.rpm = THREE.MathUtils.lerp(0.58, 1.05, (absSpeed - 29.0) / 9.0);
+    }
+
     if (inputAccel > 0) {
-      this.speed += this.acceleration * dt;
+      // Throttle acceleration by gear
+      const gearTorque = [1.38, 1.15, 0.95, 0.8][this.gear - 1];
+      this.speed += this.acceleration * gearTorque * dt;
       if (this.speed > this.maxSpeed) this.speed = this.maxSpeed;
     } else if (inputAccel < 0) {
       if (this.speed > 0.5) {
         this.speed -= this.braking * dt;
       } else {
-        this.speed -= this.acceleration * 0.8 * dt;
+        this.speed -= this.acceleration * 0.85 * dt;
         if (this.speed < this.reverseSpeed) this.speed = this.reverseSpeed;
       }
     } else {
-      if (Math.abs(this.speed) > 0.1) {
+      if (absSpeed > 0.1) {
         this.speed -= Math.sign(this.speed) * this.friction * dt;
       } else {
         this.speed = 0;
       }
     }
 
-    // Handbrake
+    // 3. Handbrake & Drift Mechanics
+    let isDrifting = false;
     if (isHandbrake) {
-      this.speed -= Math.sign(this.speed) * this.braking * 1.5 * dt;
+      this.speed -= Math.sign(this.speed) * this.braking * 0.75 * dt;
+      if (absSpeed > 3.0) {
+        isDrifting = true;
+        this.driftFactor = THREE.MathUtils.lerp(this.driftFactor, 1.0, dt * 8);
+      }
+    } else {
+      if (Math.abs(this.steerAngle) > 0.32 && absSpeed > 15.0) {
+        isDrifting = true;
+        this.driftFactor = THREE.MathUtils.lerp(this.driftFactor, 0.65, dt * 5);
+      } else {
+        this.driftFactor = THREE.MathUtils.lerp(this.driftFactor, 0, dt * 6);
+      }
     }
 
-    // Turning based on speed and steer angle
-    if (Math.abs(this.speed) > 0.15) {
-      const turnFactor = (this.speed / this.maxSpeed) * this.steerAngle * 2.5;
-      this.rotation.y += turnFactor * dt;
+    // 4. Turning with authentic weight & drift angle
+    if (absSpeed > 0.15) {
+      const driftMultiplier = 1.0 + this.driftFactor * 1.35;
+      const turnRate = (this.speed / this.maxSpeed) * this.steerAngle * 3.2 * driftMultiplier;
+      this.rotation.y += turnRate * dt;
 
-      // Suspension lean
+      // Realistic suspension roll & pitch
       this.carBodyGroup.rotation.z = THREE.MathUtils.lerp(
         this.carBodyGroup.rotation.z,
-        -this.steerAngle * (this.speed / this.maxSpeed) * 0.18,
+        -this.steerAngle * (absSpeed / this.maxSpeed) * 0.22,
         dt * 8
       );
-      const pitchTarget = (inputAccel > 0 ? -0.04 : (inputAccel < 0 ? 0.05 : 0));
-      this.carBodyGroup.rotation.x = THREE.MathUtils.lerp(this.carBodyGroup.rotation.x, pitchTarget, dt * 6);
+      const pitchTarget = (inputAccel > 0 ? -0.05 : (isBraking ? 0.07 : 0));
+      this.carBodyGroup.rotation.x = THREE.MathUtils.lerp(this.carBodyGroup.rotation.x, pitchTarget, dt * 7);
     } else {
       this.carBodyGroup.rotation.z = THREE.MathUtils.lerp(this.carBodyGroup.rotation.z, 0, dt * 6);
       this.carBodyGroup.rotation.x = THREE.MathUtils.lerp(this.carBodyGroup.rotation.x, 0, dt * 6);
     }
 
-    // Displacement
+    // 5. Tire Squeal, Skid Marks & Smoke
+    if (isDrifting && absSpeed > 4.0) {
+      window.soundEngine.setTireSqueal(Math.min(0.4, this.driftFactor * 0.45));
+      this.emitTireSmoke();
+      this.emitSkidMark();
+    } else {
+      window.soundEngine.setTireSqueal(0);
+    }
+
+    // 6. Displacement & Wall Sliding Collisions with Sparks
     const forward = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.rotation.y);
     let nextX = this.position.x + forward.x * this.speed * dt;
     let nextZ = this.position.z + forward.z * this.speed * dt;
@@ -462,9 +549,10 @@ class MafiaCar {
     if (cityWorld && cityWorld.resolveCollision) {
       const res = cityWorld.resolveCollision(nextX, nextZ, this.radius);
       if (res.collided) {
-        if (Math.abs(this.speed) > 4.0) {
-          window.soundEngine.playPunch();
-          this.speed = -this.speed * 0.3;
+        if (absSpeed > 3.0) {
+          window.soundEngine.playWallScrape();
+          this.emitSparks(res.x, res.z);
+          this.speed = -this.speed * 0.35;
         }
       }
       nextX = res.x;
@@ -476,22 +564,136 @@ class MafiaCar {
       this.position.z = nextZ;
     }
 
-    // Rotate wheels
+    // 7. Rotate wheels with tire speed
     const wheelRotSpeed = (this.speed / 0.4) * dt;
     this.wheels.forEach(w => {
       w.rotation.x += wheelRotSpeed;
     });
 
-    // Update Engine Audio
-    const speedRatio = Math.abs(this.speed) / this.maxSpeed;
-    window.soundEngine.updateCarEngine(speedRatio);
+    // 8. Update Engine Audio with RPM
+    window.soundEngine.updateCarEngine(speedRatio, this.rpm);
 
-    // Exhaust smoke puffs
+    // Exhaust smoke puffs on throttle
     if (inputAccel > 0 && Math.random() > 0.35) {
       this.emitExhaustPuff();
     }
 
     this.updateExhaustPuffs(dt);
+    this.updateTireSmokes(dt);
+    this.updateSkidMarks(dt);
+    this.updateSparks(dt);
+  }
+
+  emitSkidMark() {
+    if (!this.skidMarkMat) {
+      this.skidMarkMat = new THREE.MeshBasicMaterial({
+        color: 0x0a0c10,
+        transparent: true,
+        opacity: 0.55,
+        depthWrite: false
+      });
+      this.skidMarkGeo = new THREE.PlaneGeometry(0.24, 0.85);
+    }
+
+    const offsets = [-0.85, 0.85];
+    offsets.forEach(ox => {
+      const mark = new THREE.Mesh(this.skidMarkGeo, this.skidMarkMat);
+      mark.rotation.x = -Math.PI / 2;
+      mark.rotation.z = -this.rotation.y;
+
+      const pos = new THREE.Vector3(ox, 0.018, -1.65).applyEuler(this.rotation).add(this.position);
+      mark.position.copy(pos);
+      this.scene.add(mark);
+      this.skidMarks.push({ mesh: mark, life: 0, maxLife: 10.0 });
+    });
+
+    // Ring buffer max 80 marks
+    if (this.skidMarks.length > 80) {
+      const old = this.skidMarks.shift();
+      this.scene.remove(old.mesh);
+    }
+  }
+
+  updateSkidMarks(dt) {
+    for (let i = this.skidMarks.length - 1; i >= 0; i--) {
+      const s = this.skidMarks[i];
+      s.life += dt;
+      if (s.life >= s.maxLife) {
+        this.scene.remove(s.mesh);
+        this.skidMarks.splice(i, 1);
+      }
+    }
+  }
+
+  emitSparks(cx, cz) {
+    const sparkGeo = new THREE.SphereGeometry(0.04, 4, 4);
+    const sparkMat = new THREE.MeshBasicMaterial({ color: 0xffcc33 });
+    for (let i = 0; i < 8; i++) {
+      const spark = new THREE.Mesh(sparkGeo, sparkMat);
+      spark.position.set(cx + (Math.random() - 0.5) * 0.4, 0.4 + Math.random() * 0.6, cz + (Math.random() - 0.5) * 0.4);
+      const vel = new THREE.Vector3(
+        (Math.random() - 0.5) * 6.0,
+        Math.random() * 4.0 + 1.0,
+        (Math.random() - 0.5) * 6.0
+      );
+      this.scene.add(spark);
+      this.sparks.push({ mesh: spark, vel: vel, life: 0, maxLife: 0.35 });
+    }
+  }
+
+  updateSparks(dt) {
+    for (let i = this.sparks.length - 1; i >= 0; i--) {
+      const s = this.sparks[i];
+      s.life += dt;
+      if (s.vel && s.mesh) {
+        s.mesh.position.addScaledVector(s.vel, dt);
+        s.vel.y -= 14.0 * dt; // gravity
+      }
+      if (s.life >= s.maxLife) {
+        this.scene.remove(s.mesh);
+        s.mesh.geometry.dispose();
+        this.sparks.splice(i, 1);
+      }
+    }
+  }
+
+  emitTireSmoke() {
+    if (Math.random() > 0.45) return;
+    const smokeGeo = new THREE.SphereGeometry(0.18 + Math.random() * 0.08, 6, 6);
+    const smokeMat = new THREE.MeshBasicMaterial({ color: 0xcccccc, transparent: true, opacity: 0.45, depthWrite: false });
+    const sideX = Math.random() > 0.5 ? 0.85 : -0.85;
+    const puff = new THREE.Mesh(smokeGeo, smokeMat);
+    const pos = new THREE.Vector3(sideX, 0.25, -1.65).applyEuler(this.rotation).add(this.position);
+    puff.position.copy(pos);
+    const vel = new THREE.Vector3(
+      (Math.random() - 0.5) * 0.8,
+      Math.random() * 0.6 + 0.3,
+      (Math.random() - 0.5) * 0.8
+    );
+    this.scene.add(puff);
+    this.tireSmokes.push({ mesh: puff, mat: smokeMat, velocity: vel, life: 0, maxLife: 0.65 });
+  }
+
+  updateTireSmokes(dt) {
+    for (let i = this.tireSmokes.length - 1; i >= 0; i--) {
+      const p = this.tireSmokes[i];
+      p.life += dt;
+      if (p.velocity && p.mesh && p.mesh.position) {
+        p.mesh.position.addScaledVector(p.velocity, dt);
+      }
+      if (p.mesh && p.mesh.scale) {
+        p.mesh.scale.multiplyScalar(1.08);
+      }
+      if (p.mat) {
+        p.mat.opacity = Math.max(0, (1 - p.life / p.maxLife) * 0.45);
+      }
+      if (p.life >= p.maxLife) {
+        this.scene.remove(p.mesh);
+        p.mesh.geometry.dispose();
+        p.mat.dispose();
+        this.tireSmokes.splice(i, 1);
+      }
+    }
   }
 
   emitExhaustPuff() {

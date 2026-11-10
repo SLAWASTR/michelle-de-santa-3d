@@ -438,7 +438,7 @@ class SoundEngine {
     } catch(e) {}
   }
 
-  /* ---------------- ROBUST CRASH-PROOF CAR ENGINE AUDIO ---------------- */
+  /* ---------------- ROBUST CRASH-PROOF CAR ENGINE AUDIO & TIRES ---------------- */
 
   startCarEngine() {
     this.ensureContext();
@@ -450,40 +450,135 @@ class SoundEngine {
       this.isEngineRunning = true;
 
       const t = this.ctx.currentTime;
+
+      // 1. Deep Sub-bass Rumble (V8 idle thrum)
+      this.engineOscSub = this.ctx.createOscillator();
+      this.engineOscSub.type = 'triangle';
+      this.engineOscSub.frequency.setValueAtTime(38, t);
+
+      this.engineGainSub = this.ctx.createGain();
+      this.engineGainSub.gain.setValueAtTime(0.35, t);
+
+      this.engineOscSub.connect(this.engineGainSub);
+      this.engineGainSub.connect(this.sfxGain);
+      this.engineOscSub.start(t);
+
+      // 2. Throaty V8 Exhaust Overtones (Sawtooth with lowpass filter)
       this.engineOsc = this.ctx.createOscillator();
       this.engineGain = this.ctx.createGain();
 
       this.engineOsc.type = 'sawtooth';
-      this.engineOsc.frequency.setValueAtTime(45, t);
+      this.engineOsc.frequency.setValueAtTime(52, t);
 
-      const filter = this.ctx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(240, t);
+      this.engineFilter = this.ctx.createBiquadFilter();
+      this.engineFilter.type = 'lowpass';
+      this.engineFilter.frequency.setValueAtTime(280, t);
+      this.engineFilter.Q.setValueAtTime(2.5, t);
 
-      this.engineGain.gain.setValueAtTime(0.2, t);
+      this.engineGain.gain.setValueAtTime(0.18, t);
 
-      this.engineOsc.connect(filter);
-      filter.connect(this.engineGain);
+      this.engineOsc.connect(this.engineFilter);
+      this.engineFilter.connect(this.engineGain);
       this.engineGain.connect(this.sfxGain);
 
       this.engineOsc.start(t);
+
+      // 3. Tire Squeal Generator (Dynamically controlled)
+      this.tireGain = this.ctx.createGain();
+      this.tireGain.gain.setValueAtTime(0, t);
+      this.tireGain.connect(this.sfxGain);
+
+      this.tireOsc = this.ctx.createOscillator();
+      this.tireOsc.type = 'sawtooth';
+      this.tireOsc.frequency.setValueAtTime(820, t);
+
+      const tireFilter = this.ctx.createBiquadFilter();
+      tireFilter.type = 'bandpass';
+      tireFilter.frequency.setValueAtTime(950, t);
+      tireFilter.Q.setValueAtTime(4.0, t);
+
+      this.tireOsc.connect(tireFilter);
+      tireFilter.connect(this.tireGain);
+      this.tireOsc.start(t);
     } catch(e) {
       console.warn('startCarEngine error', e);
     }
   }
 
-  updateCarEngine(speedRatio) {
+  updateCarEngine(speedRatio, gearRPM) {
     try {
-      if (!this.isEngineRunning || !this.engineOsc || !this.ctx) return;
-      const ratio = Math.max(0, Math.min(1.5, speedRatio || 0));
-      const targetFreq = 45 + ratio * 120;
-      this.engineOsc.frequency.setTargetAtTime(targetFreq, this.ctx.currentTime, 0.08);
+      if (!this.isEngineRunning || !this.ctx) return;
+      const rpm = Math.max(0, Math.min(1.2, gearRPM !== undefined ? gearRPM : speedRatio));
+      const t = this.ctx.currentTime;
+
+      // Pitch response
+      if (this.engineOscSub) {
+        const subFreq = 38 + rpm * 45;
+        this.engineOscSub.frequency.setTargetAtTime(subFreq, t, 0.05);
+      }
+      if (this.engineOsc) {
+        const midFreq = 50 + rpm * 140;
+        this.engineOsc.frequency.setTargetAtTime(midFreq, t, 0.05);
+      }
+      if (this.engineFilter) {
+        const cutoff = 260 + rpm * 380;
+        this.engineFilter.frequency.setTargetAtTime(cutoff, t, 0.06);
+      }
+    } catch(e) {}
+  }
+
+  setTireSqueal(intensity) {
+    try {
+      if (!this.isEngineRunning || !this.tireGain || !this.ctx) return;
+      const vol = Math.max(0, Math.min(0.4, intensity || 0));
+      this.tireGain.gain.setTargetAtTime(vol, this.ctx.currentTime, 0.04);
+      if (this.tireOsc && vol > 0.01) {
+        const freq = 800 + Math.random() * 120;
+        this.tireOsc.frequency.setTargetAtTime(freq, this.ctx.currentTime, 0.03);
+      }
+    } catch(e) {}
+  }
+
+  playWallScrape() {
+    this.ensureContext();
+    if (this.isMuted || !this.ctx) return;
+    try {
+      const t = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      const filter = this.ctx.createBiquadFilter();
+
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(220, t);
+      osc.frequency.exponentialRampToValueAtTime(70, t + 0.18);
+
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(1400, t);
+
+      gain.gain.setValueAtTime(0.3, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.sfxGain);
+
+      osc.start(t);
+      osc.stop(t + 0.18);
     } catch(e) {}
   }
 
   stopCarEngine() {
     this.isEngineRunning = false;
     try {
+      if (this.engineOscSub) {
+        try { this.engineOscSub.stop(); } catch(e) {}
+        try { this.engineOscSub.disconnect(); } catch(e) {}
+        this.engineOscSub = null;
+      }
+      if (this.engineGainSub) {
+        try { this.engineGainSub.disconnect(); } catch(e) {}
+        this.engineGainSub = null;
+      }
       if (this.engineOsc) {
         try { this.engineOsc.stop(); } catch(e) {}
         try { this.engineOsc.disconnect(); } catch(e) {}
@@ -492,6 +587,15 @@ class SoundEngine {
       if (this.engineGain) {
         try { this.engineGain.disconnect(); } catch(e) {}
         this.engineGain = null;
+      }
+      if (this.tireOsc) {
+        try { this.tireOsc.stop(); } catch(e) {}
+        try { this.tireOsc.disconnect(); } catch(e) {}
+        this.tireOsc = null;
+      }
+      if (this.tireGain) {
+        try { this.tireGain.disconnect(); } catch(e) {}
+        this.tireGain = null;
       }
     } catch(e) {}
   }

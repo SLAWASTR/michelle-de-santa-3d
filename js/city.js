@@ -137,9 +137,12 @@ class CityWorld {
   initCity() {
     this.createSkyAndMoon();
     this.createRoadsAndGround();
+    this.createPuddles();
     this.createElevatedTrainTrestle();
     this.createKeyLandmarks();
     this.createCityBuildings();
+    this.createFireEscapes();
+    this.createRooftopWaterTowers();
     this.createPlazaAndFountain();
     this.createStreetFurniture();
     this.createSteamVents();
@@ -214,6 +217,103 @@ class CityWorld {
         winStrip.rotation.y = wx > 0 ? Math.PI / 2 : -Math.PI / 2;
         trainGroup.add(winStrip);
       });
+    });
+    this.elTrain = trainGroup;
+  }
+
+  createPuddles() {
+    const puddleMat = new THREE.MeshStandardMaterial({
+      color: 0x05070a,
+      metalness: 0.94,
+      roughness: 0.06,
+      transparent: true,
+      opacity: 0.88
+    });
+
+    const puddleConfigs = [
+      { x: -5.5, z: 12, w: 5.2, h: 3.2 },
+      { x: 6.2, z: -14, w: 4.2, h: 5.6 },
+      { x: -7.0, z: -22, w: 5.8, h: 3.5 },
+      { x: 4.8, z: 25, w: 4.8, h: 3.8 },
+      { x: 18.5, z: 8, w: 6.0, h: 3.2 }
+    ];
+
+    puddleConfigs.forEach(p => {
+      const geo = new THREE.CircleGeometry(p.w / 2, 18);
+      const mesh = new THREE.Mesh(geo, puddleMat);
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.scale.set(1, p.h / p.w, 1);
+      mesh.position.set(p.x, 0.02, p.z);
+      this.scene.add(mesh);
+    });
+  }
+
+  createFireEscapes() {
+    const feMat = new THREE.MeshStandardMaterial({ color: 0x181c20, roughness: 0.6, metalness: 0.85 });
+    const positions = [
+      { x: -35, z: 46.8, rot: 0 },
+      { x: 35, z: 46.8, rot: 0 },
+      { x: -35, z: -46.8, rot: Math.PI },
+      { x: 35, z: -46.8, rot: Math.PI }
+    ];
+
+    positions.forEach(fp => {
+      const feGroup = new THREE.Group();
+      feGroup.position.set(fp.x, 0, fp.z);
+      feGroup.rotation.y = fp.rot;
+
+      for (let floor = 1; floor <= 4; floor++) {
+        const fy = floor * 4.5;
+        const plat = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.12, 1.2), feMat);
+        plat.position.set(0, fy, 0.6);
+        feGroup.add(plat);
+
+        const rail = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.85, 0.06), feMat);
+        rail.position.set(0, fy + 0.42, 1.18);
+        feGroup.add(rail);
+
+        if (floor < 4) {
+          const ladder = new THREE.Mesh(new THREE.BoxGeometry(0.5, 4.6, 0.08), feMat);
+          ladder.position.set(1.4, fy + 2.2, 0.6);
+          ladder.rotation.z = -0.18;
+          feGroup.add(ladder);
+        }
+      }
+      this.scene.add(feGroup);
+    });
+  }
+
+  createRooftopWaterTowers() {
+    const woodMat = new THREE.MeshStandardMaterial({ color: 0x5a3f2b, roughness: 0.8 });
+    const metalMat = new THREE.MeshStandardMaterial({ color: 0x2e353b, roughness: 0.4, metalness: 0.85 });
+
+    const towerSpots = [
+      { x: -35, y: 32, z: 55 },
+      { x: 35, y: 28, z: 55 },
+      { x: -35, y: 36, z: -55 }
+    ];
+
+    towerSpots.forEach(ts => {
+      const tg = new THREE.Group();
+      tg.position.set(ts.x, ts.y, ts.z);
+
+      for (let lx of [-1.2, 1.2]) {
+        for (let lz of [-1.2, 1.2]) {
+          const leg = new THREE.Mesh(new THREE.BoxGeometry(0.18, 3.5, 0.18), metalMat);
+          leg.position.set(lx, 1.75, lz);
+          tg.add(leg);
+        }
+      }
+
+      const tank = new THREE.Mesh(new THREE.CylinderGeometry(2.0, 2.0, 3.2, 18), woodMat);
+      tank.position.set(0, 5.1, 0);
+      tg.add(tank);
+
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(2.2, 1.2, 18), metalMat);
+      roof.position.set(0, 7.3, 0);
+      tg.add(roof);
+
+      this.scene.add(tg);
     });
   }
 
@@ -546,6 +646,50 @@ class CityWorld {
     const awningR = new THREE.Mesh(new THREE.BoxGeometry(6, 0.5, 3.2), new THREE.MeshStandardMaterial({ color: 0xa8422b }));
     awningR.position.set(4.5, 3.8, 10.5);
     shopGroup.add(awningR);
+
+    // 8-Ball Autos Billboard in East Alley
+    const eightCanvas = document.createElement('canvas');
+    eightCanvas.width = 512;
+    eightCanvas.height = 128;
+    const ectx = eightCanvas.getContext('2d');
+    ectx.fillStyle = '#0e1116';
+    ectx.fillRect(0, 0, 512, 128);
+    ectx.strokeStyle = '#f39c12';
+    ectx.lineWidth = 5;
+    ectx.strokeRect(6, 6, 500, 116);
+    ectx.fillStyle = '#f39c12';
+    ectx.font = 'bold 36px Impact, sans-serif';
+    ectx.textAlign = 'center';
+    ectx.fillText("8-BALL'S AUTOS & BOMBS", 256, 55);
+    ectx.font = 'bold 22px Arial, sans-serif';
+    ectx.fillStyle = '#00ddff';
+    ectx.fillText("NO APPOINTMENT NEEDED • PORTLAND", 256, 95);
+    const eightSign = new THREE.Mesh(new THREE.PlaneGeometry(8, 2.0), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(eightCanvas) }));
+    eightSign.position.set(28, 7.5, 17.5);
+    this.scene.add(eightSign);
+    this.neonSigns.push(eightSign);
+
+    // Ammu-Nation Neon Sign (SE district)
+    const ammuCanvas = document.createElement('canvas');
+    ammuCanvas.width = 512;
+    ammuCanvas.height = 128;
+    const actx2 = ammuCanvas.getContext('2d');
+    actx2.fillStyle = '#0a0a0e';
+    actx2.fillRect(0, 0, 512, 128);
+    actx2.strokeStyle = '#e74c3c';
+    actx2.lineWidth = 6;
+    actx2.strokeRect(6, 6, 500, 116);
+    actx2.fillStyle = '#e74c3c';
+    actx2.font = 'bold 44px Impact, sans-serif';
+    actx2.textAlign = 'center';
+    actx2.fillText("AMMU-NATION", 256, 60);
+    actx2.font = 'bold 20px Arial, sans-serif';
+    actx2.fillStyle = '#f1c40f';
+    actx2.fillText("PROTECTING LIBERTY CITY SINCE 1968", 256, 95);
+    const ammuSign = new THREE.Mesh(new THREE.PlaneGeometry(7.5, 1.8), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(ammuCanvas) }));
+    ammuSign.position.set(26, 6.2, -15.8);
+    this.scene.add(ammuSign);
+    this.neonSigns.push(ammuSign);
   }
 
   createCityBuildings() {
@@ -921,7 +1065,16 @@ class CityWorld {
     return { x, z, collided: hasCollided };
   }
 
+  updateTrain(dt) {
+    if (!this.elTrain) return;
+    this.elTrain.position.z += 11.0 * dt;
+    if (this.elTrain.position.z > 68) {
+      this.elTrain.position.z = -68;
+    }
+  }
+
   update(dt) {
+    this.updateTrain(dt);
     this.updateSteam(dt);
     this.neonSigns.forEach(sign => {
       if (Math.random() > 0.985) {
